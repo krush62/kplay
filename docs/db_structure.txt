@@ -1,0 +1,36 @@
+// dbdiagram.io
+Project kplay_db {
+  database_type: 'SQLite'
+}
+
+Table basefolders {
+  id integer [primary key]
+  path text [unique, not null]
+}
+
+Table tracks {
+  id integer [primary key, unique, increment, not null]
+  basefolder_id integer [ref: > basefolders.id, not null]
+  path text [unique, not null]
+  title text [not null]
+  album text [not null]
+  artist text [not null]
+  album_artist text [not null]
+  pub_year integer [not null]
+  album_art blob
+}
+
+Table playlist_tracks {
+  playlist_id integer [ref: <> playlists.id ]
+  track_id integer [ref: <> tracks.id]
+  indexes {
+     (playlist_id, track_id) [unique]
+
+  }
+}
+
+Table playlists {
+  id integer [primary key, unique, increment, not null]
+  title text [not null]
+}
+
