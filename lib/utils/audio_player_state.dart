@@ -22,16 +22,21 @@ const Map<String, PlaybackState> _vlcPlaybackStateMap = <String, PlaybackState>{
   "paused": PlaybackState.paused,
 };
 
-class _VlcStatus
+class AudioBackendState
 {
   final PlaybackState playbackState;
   final int duration;
   final int position;
   final int volume;
 
-  _VlcStatus({required this.playbackState, required this.duration, required this.position, required this.volume});
+  AudioBackendState({required this.playbackState, required this.duration, required this.position, required this.volume});
 
-  factory _VlcStatus.fromJson(String jsonString)
+  factory AudioBackendState.empty()
+  {
+    return AudioBackendState(playbackState: PlaybackState.disconnected, duration: 0, position: 0, volume: 0);
+  }
+
+  factory AudioBackendState.fromJson(final String jsonString)
   {
     const String STATE_FIELD = "state";
     const String LENGTH_FIELD = "length";
@@ -46,16 +51,16 @@ class _VlcStatus
            (decoded.containsKey(TIME_FIELD) && decoded[TIME_FIELD] is int) &&
            (decoded.containsKey(VOLUME_FIELD) && decoded[VOLUME_FIELD] is int))
        {
-        return _VlcStatus(playbackState: _vlcPlaybackStateMap[decoded[STATE_FIELD]]!, duration: decoded[LENGTH_FIELD]! as int, position: decoded[TIME_FIELD]! as int, volume: decoded[VOLUME_FIELD]! as int);
+        return AudioBackendState(playbackState: _vlcPlaybackStateMap[decoded[STATE_FIELD]]!, duration: decoded[LENGTH_FIELD]! as int, position: decoded[TIME_FIELD]! as int, volume: decoded[VOLUME_FIELD]! as int);
        }
        else
        {
-         return _VlcStatus(playbackState: PlaybackState.disconnected, duration: 0, position: 0, volume: 0);
+         return AudioBackendState.empty();
        }
     }
     else
     {
-      return _VlcStatus(playbackState: PlaybackState.disconnected, duration: 0, position: 0, volume: 0);
+      return AudioBackendState.empty();
     }
   }
 }
@@ -64,7 +69,7 @@ class AudioPlayerState
 {
   late Timer _queryTimer;
   late Process _vlcProcess;
-  final ValueNotifier<PlaybackState> playbackState = ValueNotifier<PlaybackState>(PlaybackState.disconnected);
+  final ValueNotifier<AudioBackendState> playbackState = ValueNotifier<AudioBackendState>(AudioBackendState.empty());
   static const Duration _QUERY_INTERVAL = Duration(milliseconds: 500);
   static const double _CURL_TIMEOUT_SECONDS = 0.2;
   final String _password = generatePassword(length: 12);
@@ -80,12 +85,7 @@ class AudioPlayerState
     final ProcessResult curlResult = await Process.run(executable, <String>["--connect-timeout", "$_CURL_TIMEOUT_SECONDS", "-u", ":$_password", "http://localhost:8080/requests/status.json"]);
     if (curlResult.exitCode == 0)
     {
-      final _VlcStatus status = _VlcStatus.fromJson(curlResult.stdout.toString());
-      if (playbackState.value != status.playbackState)
-      {
-        playbackState.value = status.playbackState;
-        //print("Playback state changed to ${playbackState.value}");
-      }
+      playbackState.value = AudioBackendState.fromJson(curlResult.stdout.toString());
     }
     else
     {
