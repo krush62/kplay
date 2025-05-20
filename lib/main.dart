@@ -1,14 +1,13 @@
 import 'dart:typed_data';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:kplay/kplay_theme.dart';
 import 'package:kplay/player_page.dart';
 import 'package:kplay/playlist_page.dart';
 import 'package:kplay/settings_page.dart';
 import 'package:kplay/system_page.dart';
+import 'package:kplay/utils/audio_player_state.dart';
 import 'package:kplay/utils/database.dart';
-import 'package:kplay/utils/file_helper.dart';
 
 late AppDatabase appdb;
 
@@ -69,7 +68,9 @@ enum PlaylistType
 
 class _KPlayState extends State<KPlay>
 {
-  final AudioPlayer player = AudioPlayer();
+  //TODO just_audio
+  //final AudioPlayer player = AudioPlayer();
+  final AudioPlayerState audioPlayerState = AudioPlayerState();
   final ValueNotifier<NavigationState> _selectedNavigation = ValueNotifier<NavigationState>(NavigationState.player);
   final List<Widget> _navigationDestinations = <Widget>[];
   final Map<int, NavigationState> _navigationStateMap =
@@ -156,7 +157,8 @@ class _KPlayState extends State<KPlay>
       }
     },);
 
-    player.sequenceStateStream.listen((final SequenceState? state) {
+    //TODO just_audio
+    /*player.sequenceStateStream.listen((final SequenceState? state) {
       if (state != null)
       {
         if (state.currentSource != null && state.currentSource!.tag is MutableTrack && state.currentSource!.tag != currentTrack.value)
@@ -165,7 +167,7 @@ class _KPlayState extends State<KPlay>
           getImageForTrack(path: currentTrack.value!.path).then((final Uint8List? data) {imageData.value = data;});
         }
       }
-    });
+    });*/
   }
 
   Future<void> toggleFavorite() async
@@ -176,11 +178,14 @@ class _KPlayState extends State<KPlay>
       if (updatedTrack != null)
       {
         currentTrack.value = MutableTrack.fromTableTrack(updatedTrack);
+
+        //TODO just_audio
+        /*
         if (player.sequenceState != null && player.sequenceState!.currentSource != null && player.sequenceState!.currentSource!.tag is MutableTrack)
         {
           final MutableTrack playlistTrack = player.sequenceState!.currentSource!.tag as MutableTrack;
           playlistTrack.isFavorite = updatedTrack.isFavorite;
-        }
+        }*/
         final List<TableTrack> favoriteTracks = await appdb.getFavoriteTracks();
         final List<MutableTrack> favoriteTracksMutable = <MutableTrack>[];
         for (final TableTrack track in favoriteTracks)
@@ -194,8 +199,8 @@ class _KPlayState extends State<KPlay>
 
   Future<void> _populatePlayerPlaylist({required final List<MutableTrack> tracks}) async
   {
-    //await player.stop();
-    final List<AudioSource> sources = <AudioSource>[];
+    //TODO just_audio
+    /*final List<AudioSource> sources = <AudioSource>[];
 
     for (final MutableTrack track in tracks)
     {
@@ -210,7 +215,7 @@ class _KPlayState extends State<KPlay>
     await player.setAudioSource(source);
     await player.setShuffleModeEnabled(true);
     await player.setLoopMode(LoopMode.all);
-
+    */
   }
 
 
@@ -235,14 +240,15 @@ class _KPlayState extends State<KPlay>
 
   void selectTrack({required final MutableTrack track})
   {
-    if (player.sequence != null)
+    //TODO just_audio
+    /*if (player.sequence != null)
     {
       final IndexedAudioSource? source = player.sequence!.where((final IndexedAudioSource s) => s.tag is MutableTrack && (s.tag as MutableTrack).id == track.id).singleOrNull;
       if (source != null)
       {
         player.seek(Duration.zero, index: player.sequence!.indexOf(source));
       }
-    }
+    }*/
   }
 
 
@@ -277,7 +283,8 @@ class _KPlayState extends State<KPlay>
             switch(selectedNav)
             {
               case NavigationState.player:
-                return PlayerPage(player: player, imageData: imageData, currentTrack: currentTrack, toggleFavorite: toggleFavorite, playlistType: playlistType,);
+                //TODO just_audio
+                return PlayerPage(/*player: player,*/ imageData: imageData, currentTrack: currentTrack, toggleFavorite: toggleFavorite, playlistType: playlistType,);
               case NavigationState.browser:
                 return PlaylistPage(allPlaylistTracks: allPlaylistTracks, favoritePlaylistTracks: favoritePlaylistTracks, playlistType: playlistType, currentTrack: currentTrack, selectTrack: selectTrack,);
               case NavigationState.settings:

@@ -1,4 +1,6 @@
 
+import 'dart:math';
+
 String truncateFront({required final String text, required final int maxChars})
 {
   const String ellipsis = "...";
@@ -29,4 +31,21 @@ String formatDuration({required final int seconds})
   {
     return '$formattedMinutes:$formattedSeconds';
   }
+}
+
+String generatePassword({required final int length})
+{
+  const String upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const String lower = "abcdefghijklmnopqrstuvwxyz";
+  const String numbers = "1234567890";
+  const String seed = upper + lower + numbers;
+  final int passLength = length.clamp(6, 16);
+  String password = '';
+  final List<String> list = seed.split('').toList();
+  final Random rand = Random();
+  for (int i = 0; i < passLength; i++) {
+    final int index = rand.nextInt(list.length);
+    password += list[index];
+  }
+  return password;
 }

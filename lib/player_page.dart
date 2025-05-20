@@ -2,18 +2,18 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:kplay/main.dart';
 import 'package:kplay/utils/database.dart';
 import 'package:kplay/utils/helpers.dart';
 
 class PlayerPage extends StatefulWidget
 {
-  const PlayerPage({super.key, required this.player, required this.imageData, required this.currentTrack, required this.playlistType, required this.toggleFavorite});
+  const PlayerPage({super.key, /*required this.player,*/ required this.imageData, required this.currentTrack, required this.playlistType, required this.toggleFavorite});
 
   final Function() toggleFavorite;
   final ValueNotifier<Uint8List?> imageData;
-  final AudioPlayer player;
+  //TODO just_audio
+  //final AudioPlayer player;
   final ValueNotifier<MutableTrack?> currentTrack;
   final ValueNotifier<PlaylistType> playlistType;
 
@@ -32,6 +32,8 @@ class _PlayerPageState extends State<PlayerPage>
 
   Future<void> _playPressed() async
   {
+    //TODO just_audio
+    /*
     if (widget.player.playing)
     {
       await widget.player.pause();
@@ -40,16 +42,19 @@ class _PlayerPageState extends State<PlayerPage>
     {
       await widget.player.play();
     }
+    */
   }
 
   void _nextPressed()
   {
-    widget.player.seekToNext();
+    //TODO just_audio
+    //widget.player.seekToNext();
   }
 
   void _previousPressed()
   {
-    widget.player.seekToPrevious();
+    //TODO just_audio
+    //widget.player.seekToPrevious();
   }
 
 
@@ -162,12 +167,13 @@ class _PlayerPageState extends State<PlayerPage>
                             children: <Widget>[
                               IconButton(onPressed: track != null ? _previousPressed : null, icon: const Icon(Icons.skip_previous, size: 72,)),
                               const SizedBox(width: 16,),
-                              StreamBuilder<PlayerState>(
+                              //TODO just_audio
+                              /*StreamBuilder<PlayerState>(
                                 stream: widget.player.playerStateStream,
                                 builder: (final BuildContext context, final AsyncSnapshot<PlayerState> playerState) {
                                   return IconButton(onPressed: track != null ?_playPressed : null, icon: Icon(playerState.data != null && playerState.data!.playing ? Icons.pause : Icons.play_arrow, size: 72));
                                 },
-                              ),
+                              ),*/
                               const SizedBox(width: 16,),
                               IconButton(onPressed: track != null ? _nextPressed : null, icon: const Icon(Icons.skip_next, size: 72,)),
                             ],
@@ -182,7 +188,8 @@ class _PlayerPageState extends State<PlayerPage>
             ),
           ),
           const SizedBox(height: 16,),
-          StreamBuilder<Duration>(
+          //TODO just_audio
+          /*StreamBuilder<Duration>(
             stream: widget.player.positionStream,
             builder: (final BuildContext context, final AsyncSnapshot<Duration> positionSnapshot) {
               return StreamBuilder<Duration?>(
@@ -198,24 +205,27 @@ class _PlayerPageState extends State<PlayerPage>
                 },
               );
             },
-          ),
+          ),*/
           Row(
             children: <Widget>[
+              //TODO just_audio
+              /*
               StreamBuilder<Duration>(
                 stream: widget.player.positionStream,
                 builder: (final BuildContext context, final AsyncSnapshot<Duration> snapshot)
                 {
                   return Text(snapshot.data != null ? formatDuration(seconds: snapshot.data!.inSeconds) : "0:00", style: Theme.of(context).textTheme.bodyLarge);
                 },
-              ),
+              ),*/
               const Expanded(child: SizedBox.shrink()),
-              StreamBuilder<Duration?>(
+              //TODO just_audio
+              /*StreamBuilder<Duration?>(
                 stream: widget.player.durationStream,
                 builder: (final BuildContext context, final AsyncSnapshot<Duration?> snapshot)
                 {
                   return Text(snapshot.data != null ? formatDuration(seconds: snapshot.data!.inSeconds) : "0:00", style: Theme.of(context).textTheme.bodyLarge);
                 },
-              ),
+              ),*/
 
 
               /*ValueListenableBuilder<TableTrack?>(

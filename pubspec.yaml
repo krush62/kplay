@@ -34,10 +34,6 @@ dependencies:
   flutter:
     sdk: flutter
   google_fonts: ^6.2.1
-  just_audio: ^0.9.46
-  just_audio_media_kit: ^2.0.6
-  just_audio_windows: ^0.2.2
-  #media_kit_libs_linux: ^1.2.1
   path: any
   path_provider: ^2.1.5
 
