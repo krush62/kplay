@@ -100,7 +100,7 @@ class _SettingsPageState extends State<SettingsPage>
                 padding: const EdgeInsets.all(16.0),
                 child: Material(
                   borderRadius: BorderRadius.circular(10),
-                  child: DirectoryPicker(onDirectorySelected: _newFolderSelected),
+                  child: DirectoryPicker(onDirectorySelected: _newFolderSelected, discard: _discardDirectoryPicker),
                 ),
               ),
             ),
@@ -248,6 +248,11 @@ class _SettingsPageState extends State<SettingsPage>
         widget.errorCallback(message: "Error: Could not add new folder");
       }
     });
+  }
+
+  void _discardDirectoryPicker()
+  {
+    _directoryPickerOverlay.remove();
   }
 
 

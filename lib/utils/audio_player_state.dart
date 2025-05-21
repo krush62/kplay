@@ -123,10 +123,12 @@ class AudioPlayerState
   final ValueNotifier<List<PlaylistEntry>> playlist = ValueNotifier<List<PlaylistEntry>>(<PlaylistEntry>[]);
   final String _curlCommand = Platform.isWindows ? "curl.exe" : "curl";
   final String _vlcCommand = Platform.isWindows ? "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe" : "vlc";
+  bool initialized = false;
 
   AudioPlayerState()
   {
     _startVLC().then((final bool result) {
+      initialized = true;
       if (result)
       {
         Timer.periodic(queryInterval, _queryTimeout);
@@ -176,6 +178,7 @@ class AudioPlayerState
   {
     await clearPlaylist();
 
+    playlistFromDB.shuffle();
     for (final MutableTrack track in playlistFromDB)
     {
       final String urlPath = Uri.encodeFull(track.path.replaceAll("\\", "/"));

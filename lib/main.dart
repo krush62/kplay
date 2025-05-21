@@ -110,10 +110,50 @@ class _KPlayState extends State<KPlay>
   final ValueNotifier<PlaylistType> playlistType = ValueNotifier<PlaylistType>(PlaylistType.all);
   final ValueNotifier<MutableTrack?> currentTrack = ValueNotifier<MutableTrack?>(null);
 
+  late OverlayEntry _playlistLoadOverlay;
+  static const Duration _waitTimeForAudioPlayer = Duration(seconds: 5);
+
   @override
   void initState()
   {
     super.initState();
+
+    _playlistLoadOverlay = OverlayEntry(
+      builder: (final BuildContext context) {
+        return Stack(
+          children:<Widget>[
+            ModalBarrier(
+              dismissible: false,
+              color: Colors.black.withAlpha(100),
+            ),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Material(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Row(
+                        children: <Widget>[
+                          CircularProgressIndicator(),
+                          SizedBox(width: 20,),
+                          Text("loading playlist..."),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
     for (final NavigationState state in _navigationStateMap.values)
     {
       final NavigationDestination destination = NavigationDestination(
@@ -133,7 +173,10 @@ class _KPlayState extends State<KPlay>
     {
       if (playlistType.value == PlaylistType.all)
       {
-        _populatePlayerPlaylist(tracks: allPlaylistTracks.value);
+        //Overlay.of(context).insert(_playlistLoadOverlay);
+        _populatePlayerPlaylist(tracks: allPlaylistTracks.value).then((_) {
+          _playlistCreationFinished();
+        },);
       }
     });
 
@@ -141,18 +184,27 @@ class _KPlayState extends State<KPlay>
     {
       if (playlistType.value == PlaylistType.favorite)
       {
-        _populatePlayerPlaylist(tracks: favoritePlaylistTracks.value);
+        //Overlay.of(context).insert(_playlistLoadOverlay);
+        _populatePlayerPlaylist(tracks: favoritePlaylistTracks.value).then((_) {
+          _playlistCreationFinished();
+        },);
       }
     });
 
     playlistType.addListener(() {
       if (playlistType.value == PlaylistType.all)
       {
-        _populatePlayerPlaylist(tracks: allPlaylistTracks.value);
+        //Overlay.of(context).insert(_playlistLoadOverlay);
+        _populatePlayerPlaylist(tracks: allPlaylistTracks.value).then((_) {
+          _playlistCreationFinished();
+        },);
       }
       else if (playlistType.value == PlaylistType.favorite)
       {
-        _populatePlayerPlaylist(tracks: favoritePlaylistTracks.value);
+        //Overlay.of(context).insert(_playlistLoadOverlay);
+        _populatePlayerPlaylist(tracks: favoritePlaylistTracks.value).then((_) {
+          _playlistCreationFinished();
+        },);
       }
     },);
 
@@ -163,6 +215,14 @@ class _KPlayState extends State<KPlay>
         getImageForTrack(path: currentTrack.value!.path).then((final Uint8List? data) {imageData.value = data;});
       }
     },);
+  }
+
+  void _playlistCreationFinished()
+  {
+    if (_playlistLoadOverlay.mounted)
+    {
+      _playlistLoadOverlay.remove();
+    }
   }
 
   Future<void> toggleFavorite() async
@@ -212,6 +272,14 @@ class _KPlayState extends State<KPlay>
 
     if (!isSame)
     {
+      Overlay.of(context).insert(_playlistLoadOverlay);
+      final DateTime targetTime = DateTime.now().add(_waitTimeForAudioPlayer);
+      while (DateTime.now().isBefore(targetTime) && !audioPlayerState.initialized)
+      {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        print("WAITING....");
+      }
+
       await audioPlayerState.setPlaylist(playlistFromDB: tracks);
       await audioPlayerState.shuffle(true);
     }
