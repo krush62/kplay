@@ -213,9 +213,8 @@ class _KPlayState extends State<KPlay>
     if (!isSame)
     {
       await audioPlayerState.setPlaylist(playlistFromDB: tracks);
-      //TODO THERE IS NO SHUFFLE AT THE MOMENT (OR REPEAT ALL)
+      await audioPlayerState.shuffle(true);
     }
-
   }
 
 

@@ -271,5 +271,11 @@ class AudioPlayerState
     return (result.exitCode == 0);
   }
 
+  Future<bool> shuffle(final bool enabled) async
+  {
+    final String command = enabled ? "pl_random" : "pl_repeat";
+    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=$command"]);
+    return (result.exitCode == 0);
+  }
 
 }
