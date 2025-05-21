@@ -29,16 +29,16 @@ void main() async
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(final BuildContext context)
   {
-    final Brightness brightness = View.of(context).platformDispatcher.platformBrightness;
+    //final Brightness brightness = View.of(context).platformDispatcher.platformBrightness;
     final TextTheme textTheme = createTextTheme(context, "Homenaje", "Homenaje");
     final MaterialTheme theme = MaterialTheme(textTheme);
     return MaterialApp(
       title: 'KPlay',
-      theme: brightness == Brightness.light ? theme.light() : theme.dark(),
+      //theme: brightness == Brightness.light ? theme.light() : theme.dark(),
+      theme: theme.dark(),
       home: const KPlay(),
     );
   }

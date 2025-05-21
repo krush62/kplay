@@ -81,7 +81,7 @@ class _PlayerPageState extends State<PlayerPage>
                             borderRadius: BorderRadius.circular(10.0),
                           ),
                           child: Center(
-                            child: Icon(Icons.music_note, size: 256, color: Theme.of(context).colorScheme.onSecondaryFixed,),
+                            child: Icon(Icons.music_note, size: 128, color: Theme.of(context).colorScheme.onSecondaryFixed,),
                           ),
                         );
                       }

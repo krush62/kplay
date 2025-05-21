@@ -56,48 +56,55 @@ class AudioBackendState
     const String playlistIdField = "currentplid";
     const String positionField = "position";
 
-    final dynamic decoded = json.decode(jsonString);
-    if (decoded is Map<String, dynamic>)
+    try
     {
-       if ((decoded.containsKey(stateField) && decoded[stateField] is String && _vlcPlaybackStateMap.containsKey(decoded[stateField])) &&
-           (decoded.containsKey(lengthField) && decoded[lengthField] is int)  &&
-           (decoded.containsKey(timeField) && decoded[timeField] is int) &&
-           (decoded.containsKey(volumeField) && decoded[volumeField] is int) &&
-           (decoded.containsKey(playlistIdField) && decoded[playlistIdField] is int) &&
-           (decoded.containsKey(positionField) && (decoded[positionField] is double || decoded[positionField] is int))
-       )
-       {
+      final dynamic decoded = json.decode(jsonString);
+      if (decoded is Map<String, dynamic>)
+      {
+        if ((decoded.containsKey(stateField) && decoded[stateField] is String && _vlcPlaybackStateMap.containsKey(decoded[stateField])) &&
+            (decoded.containsKey(lengthField) && decoded[lengthField] is int)  &&
+            (decoded.containsKey(timeField) && decoded[timeField] is int) &&
+            (decoded.containsKey(volumeField) && decoded[volumeField] is int) &&
+            (decoded.containsKey(playlistIdField) && decoded[playlistIdField] is int) &&
+            (decoded.containsKey(positionField) && (decoded[positionField] is double || decoded[positionField] is int))
+        )
+        {
 
-         double positionFactor = 0.0;
-         if (decoded[positionField] is int)
-         {
-           positionFactor = (decoded[positionField] as int).toDouble();
-         }
-         else if (decoded[positionField] is double)
-         {
-           positionFactor = decoded[positionField] as double;
-         }
+          double positionFactor = 0.0;
+          if (decoded[positionField] is int)
+          {
+            positionFactor = (decoded[positionField] as int).toDouble();
+          }
+          else if (decoded[positionField] is double)
+          {
+            positionFactor = decoded[positionField] as double;
+          }
 
-         PlaylistEntry? currentTrack;
-         if (decoded[playlistIdField] != -1)
-         {
-           currentTrack = playlist.where((final PlaylistEntry entry) => entry.playlistId == decoded[playlistIdField].toString()).singleOrNull;
-         }
+          PlaylistEntry? currentTrack;
+          if (decoded[playlistIdField] != -1)
+          {
+            currentTrack = playlist.where((final PlaylistEntry entry) => entry.playlistId == decoded[playlistIdField].toString()).singleOrNull;
+          }
 
-        return AudioBackendState(
+          return AudioBackendState(
             playbackState: _vlcPlaybackStateMap[decoded[stateField]]!,
             duration: decoded[lengthField]! as int,
             position: decoded[timeField]! as int,
             volume: decoded[volumeField]! as int,
             currentTrack: currentTrack,
             positionFactor: positionFactor,);
-       }
-       else
-       {
-         return AudioBackendState.empty();
-       }
+        }
+        else
+        {
+          return AudioBackendState.empty();
+        }
+      }
+      else
+      {
+        return AudioBackendState.empty();
+      }
     }
-    else
+    catch(_)
     {
       return AudioBackendState.empty();
     }
