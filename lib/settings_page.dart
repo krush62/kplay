@@ -100,7 +100,7 @@ class _SettingsPageState extends State<SettingsPage>
                 padding: const EdgeInsets.all(16.0),
                 child: Material(
                   borderRadius: BorderRadius.circular(10),
-                  child: DirectoryPicker(onDirectorySelected: _newFolderSelected)
+                  child: DirectoryPicker(onDirectorySelected: _newFolderSelected),
                 ),
               ),
             ),
@@ -151,11 +151,29 @@ class _SettingsPageState extends State<SettingsPage>
     super.dispose();
   }
 
+  bool baseFoldersAreDifferent(final List<TableBaseFolder> items)
+  {
+    if (_baseFolderNotifier.value.length != items.length)
+    {
+      return true;
+    }
+    for (int i = 0; i < items.length; i++) {
+      if (_baseFolderNotifier.value[i].title != items[i].title) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   void _readBaseFolders()
   {
     widget.db.select(widget.db.tableBaseFolders).get().then((final List<TableBaseFolder> items) {
-      _baseFolderNotifier.value = items;
-      _updatePlaylists();
+      if (baseFoldersAreDifferent(items))
+      {
+        _baseFolderNotifier.value = items;
+        _updatePlaylists();
+      }
+
     });
   }
 
@@ -197,6 +215,7 @@ class _SettingsPageState extends State<SettingsPage>
   {
     _currentStatus.value = "Updating database...";
     widget.db.insertTracks(tracks: tracks).then((final bool success) {
+
       _updatePlaylists();
       _currentStatus.value = null;
     });

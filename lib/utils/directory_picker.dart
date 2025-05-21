@@ -42,9 +42,11 @@ class _DirectoryPickerState extends State<DirectoryPicker>
 
   void _directorySelected(final Directory dir)
   {
-    currentDir.value = dir;
+    if (currentDir.value == null || dir.path != currentDir.value?.path)
+    {
+      currentDir.value = dir;
+    }
   }
-
 
   @override
   Widget build(final BuildContext context) {

@@ -90,7 +90,7 @@ Future<Uint8List?> getImageForTrack({required final String path}) async
     }
     catch (e)
     {
-      print("Error reading image for file $path");
+      stdout.writeln("Error reading image for file $path");
     }
   }
 

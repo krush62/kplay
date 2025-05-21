@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:kplay/utils/database.dart';
 import 'package:kplay/utils/helpers.dart';
 
 
@@ -14,6 +15,14 @@ enum PlaybackState
   playing,
   paused,
   disconnected
+}
+
+class PlaylistEntry
+{
+  final MutableTrack dbTrack;
+  final String playlistId;
+
+  PlaylistEntry({required this.dbTrack, required this.playlistId});
 }
 
 const Map<String, PlaybackState> _vlcPlaybackStateMap = <String, PlaybackState>{
@@ -27,31 +36,61 @@ class AudioBackendState
   final PlaybackState playbackState;
   final int duration;
   final int position;
+  final double positionFactor;
   final int volume;
+  final PlaylistEntry? currentTrack;
 
-  AudioBackendState({required this.playbackState, required this.duration, required this.position, required this.volume});
+  AudioBackendState({required this.playbackState, required this.duration, required this.position, required this.volume, required this.currentTrack, required this.positionFactor});
 
   factory AudioBackendState.empty()
   {
-    return AudioBackendState(playbackState: PlaybackState.disconnected, duration: 0, position: 0, volume: 0);
+    return AudioBackendState(playbackState: PlaybackState.disconnected, duration: 0, position: 0, volume: 0, currentTrack: null, positionFactor: 0.0);
   }
 
-  factory AudioBackendState.fromJson(final String jsonString)
+  factory AudioBackendState.fromJson(final String jsonString, final List<PlaylistEntry> playlist)
   {
-    const String STATE_FIELD = "state";
-    const String LENGTH_FIELD = "length";
-    const String TIME_FIELD = "time";
-    const String VOLUME_FIELD = "volume";
+    const String stateField = "state";
+    const String lengthField = "length";
+    const String timeField = "time";
+    const String volumeField = "volume";
+    const String playlistIdField = "currentplid";
+    const String positionField = "position";
 
     final dynamic decoded = json.decode(jsonString);
     if (decoded is Map<String, dynamic>)
     {
-       if ((decoded.containsKey(STATE_FIELD) && decoded[STATE_FIELD] is String && _vlcPlaybackStateMap.containsKey(decoded[STATE_FIELD])) &&
-           (decoded.containsKey(LENGTH_FIELD) && decoded[LENGTH_FIELD] is int)  &&
-           (decoded.containsKey(TIME_FIELD) && decoded[TIME_FIELD] is int) &&
-           (decoded.containsKey(VOLUME_FIELD) && decoded[VOLUME_FIELD] is int))
+       if ((decoded.containsKey(stateField) && decoded[stateField] is String && _vlcPlaybackStateMap.containsKey(decoded[stateField])) &&
+           (decoded.containsKey(lengthField) && decoded[lengthField] is int)  &&
+           (decoded.containsKey(timeField) && decoded[timeField] is int) &&
+           (decoded.containsKey(volumeField) && decoded[volumeField] is int) &&
+           (decoded.containsKey(playlistIdField) && decoded[playlistIdField] is int) &&
+           (decoded.containsKey(positionField) && (decoded[positionField] is double || decoded[positionField] is int))
+       )
        {
-        return AudioBackendState(playbackState: _vlcPlaybackStateMap[decoded[STATE_FIELD]]!, duration: decoded[LENGTH_FIELD]! as int, position: decoded[TIME_FIELD]! as int, volume: decoded[VOLUME_FIELD]! as int);
+
+         double positionFactor = 0.0;
+         if (decoded[positionField] is int)
+         {
+           positionFactor = (decoded[positionField] as int).toDouble();
+         }
+         else if (decoded[positionField] is double)
+         {
+           positionFactor = decoded[positionField] as double;
+         }
+
+         PlaylistEntry? currentTrack;
+         if (decoded[playlistIdField] != -1)
+         {
+           currentTrack = playlist.where((final PlaylistEntry entry) => entry.playlistId == decoded[playlistIdField].toString()).singleOrNull;
+         }
+
+        return AudioBackendState(
+            playbackState: _vlcPlaybackStateMap[decoded[stateField]]!,
+            duration: decoded[lengthField]! as int,
+            position: decoded[timeField]! as int,
+            volume: decoded[volumeField]! as int,
+            currentTrack: currentTrack,
+            positionFactor: positionFactor,);
        }
        else
        {
@@ -67,12 +106,26 @@ class AudioBackendState
 
 class AudioPlayerState
 {
-  late Timer _queryTimer;
-  late Process _vlcProcess;
-  final ValueNotifier<AudioBackendState> playbackState = ValueNotifier<AudioBackendState>(AudioBackendState.empty());
-  static const Duration _QUERY_INTERVAL = Duration(milliseconds: 500);
-  static const double _CURL_TIMEOUT_SECONDS = 0.2;
+  final ValueNotifier<AudioBackendState> audioBackendState = ValueNotifier<AudioBackendState>(AudioBackendState.empty());
+  final ValueNotifier<PlaybackState> playbackState = ValueNotifier<PlaybackState>(PlaybackState.disconnected);
+  final ValueNotifier<double> audioPositionFactor = ValueNotifier<double>(0.0);
+  final ValueNotifier<int> duration = ValueNotifier<int>(0);
+  static const Duration queryInterval = Duration(milliseconds: 500);
+  static const double curlTimeout = 0.3;
   final String _password = generatePassword(length: 12);
+  final ValueNotifier<List<PlaylistEntry>> playlist = ValueNotifier<List<PlaylistEntry>>(<PlaylistEntry>[]);
+  final String _curlCommand = Platform.isWindows ? "curl.exe" : "curl";
+  final String _vlcCommand = Platform.isWindows ? "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe" : "vlc";
+
+  AudioPlayerState()
+  {
+    _startVLC().then((final bool result) {
+      if (result)
+      {
+        Timer.periodic(queryInterval, _queryTimeout);
+      }
+    },);
+  }
 
   void _queryTimeout(final Timer timer)
   {
@@ -81,45 +134,142 @@ class AudioPlayerState
 
   Future<void> _getVlcState() async
   {
-    final String executable = Platform.isWindows ? "curl.exe" : "curl";
-    final ProcessResult curlResult = await Process.run(executable, <String>["--connect-timeout", "$_CURL_TIMEOUT_SECONDS", "-u", ":$_password", "http://localhost:8080/requests/status.json"]);
+    final ProcessResult curlResult = await Process.run(_curlCommand, <String>["--connect-timeout", "$curlTimeout", "-u", ":$_password", "http://localhost:8080/requests/status.json"]);
     if (curlResult.exitCode == 0)
     {
-      playbackState.value = AudioBackendState.fromJson(curlResult.stdout.toString());
+      audioBackendState.value = AudioBackendState.fromJson(curlResult.stdout.toString(), playlist.value);
+      playbackState.value = audioBackendState.value.playbackState;
+      audioPositionFactor.value = audioBackendState.value.positionFactor;
+      duration.value = audioBackendState.value.duration;
     }
     else
     {
-      print(curlResult.stderr);
+      stdout.writeln("Could not retrieve VLC state!");
     }
   }
 
-  AudioPlayerState()
-  {
-    _startVLC().then((final bool result) {
-      if (result)
-      {
-        _queryTimer = Timer.periodic(_QUERY_INTERVAL, _queryTimeout);
-      }
-    },);
-  }
 
   //TODO kill timer and process (? there are no destructors)
 
   Future<bool> _startVLC() async
   {
-    final String executable = Platform.isWindows ? "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe" : "vlc";
     try
     {
-      _vlcProcess = await Process.start(executable, <String>["-I", "http", "--http-password=$_password"], mode: ProcessStartMode.detached);
+      stdout.writeln("PASSWORD: $_password");
+      await Process.start(_vlcCommand, <String>["-I", "http", "--http-password=$_password"], mode: ProcessStartMode.detached);
       return true;
     }
     catch(_)
     {
       return false;
     }
+  }
+
+  Future<void> setPlaylist({required final List<MutableTrack> playlistFromDB}) async
+  {
+    await clearPlaylist();
+
+    for (final MutableTrack track in playlistFromDB)
+    {
+      final String urlPath = Uri.encodeFull(track.path.replaceAll("\\", "/"));
+      final ProcessResult insertResult = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=in_enqueue&input=file:///$urlPath"]);
+      if (insertResult.exitCode != 0)
+      {
+        stdout.writeln("Adding track failed: $track");
+        break;
+      }
+    }
+
+    final ProcessResult playlistResult = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/playlist.json"]);
+    if (playlistResult.exitCode == 0)
+    {
+      final Map<String, dynamic> data = json.decode(playlistResult.stdout.toString()) as Map<String, dynamic>;
+
+      final List<String> leafIds = <String>[];
+      _collectLeafIds(data, leafIds);
+      if (leafIds.length == playlistFromDB.length)
+      {
+        final List<PlaylistEntry> entries = <PlaylistEntry>[];
+        for (int i = 0; i < playlistFromDB.length; i++)
+        {
+          entries.add(PlaylistEntry(dbTrack: playlistFromDB[i], playlistId: leafIds[i]));
+        }
+        playlist.value = entries;
+      }
+      else
+      {
+        stdout.writeln("Different number of playlist ids!");
+      }
+    }
+    else
+    {
+      stdout.writeln("Could not retrieve playlist!");
+    }
 
   }
 
+  void _collectLeafIds(final Map<String, dynamic> node, final List<String> leafIds) {
+    if (node['type'] == 'leaf') {
+      leafIds.add(node['id'] as String);
+    }
+
+    if (node.containsKey('children')) {
+      final List<dynamic>children = node['children'] as List<dynamic>;
+      for (final dynamic child in children) {
+        if (child is Map<String, dynamic>) {
+          _collectLeafIds(child, leafIds);
+        }
+      }
+    }
+  }
+
+  Future<bool> play() async
+  {
+    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=pl_play"]);
+    return (result.exitCode == 0);
+  }
+
+  Future<bool> pause() async
+  {
+    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=pl_pause"]);
+    return (result.exitCode == 0);
+  }
+
+  Future<bool> next() async
+  {
+    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=pl_next"]);
+    return (result.exitCode == 0);
+  }
+
+  Future<bool> previous() async
+  {
+    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=pl_previous"]);
+    return (result.exitCode == 0);
+  }
+
+  Future<bool> seek(final double position) async
+  {
+    final int secondPosition = (position.clamp(0.0, 1.0) * audioBackendState.value.duration.toDouble()).toInt();
+    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=seek&val=$secondPosition"]);
+    return (result.exitCode == 0);
+  }
+
+  Future<bool> selectTrack(final MutableTrack track) async
+  {
+    final String? playlistId = playlist.value.where((final PlaylistEntry entry) => entry.dbTrack.id == track.id).singleOrNull?.playlistId;
+    if (playlistId != null)
+    {
+      final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=pl_play&id=$playlistId"]);
+      return (result.exitCode == 0);
+    }
+    return false;
+  }
+
+  Future<bool> clearPlaylist() async
+  {
+    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=pl_empty"]);
+    return (result.exitCode == 0);
+  }
 
 
 }

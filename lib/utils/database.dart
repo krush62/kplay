@@ -262,14 +262,11 @@ class AppDatabase extends _$AppDatabase {
       //get all tracks that use this base folder
       final List<TableTrack> tracksWithBaseFolder = await (select(tableTracks)..where((final $TableTracksTable tbl) => tbl.baseFolderId.equals(folder.id))).get();
       //delete all playlist entries that use these tracks
-      final int deletedPlaylistEntries = await (delete(tablePlaylistTracks)..where((final $TablePlaylistTracksTable tbl) => tbl.trackId.isIn(tracksWithBaseFolder.map((final TableTrack track) => track.id)))).go();
-      print("deletedPlaylistEntries: $deletedPlaylistEntries");
+      await (delete(tablePlaylistTracks)..where((final $TablePlaylistTracksTable tbl) => tbl.trackId.isIn(tracksWithBaseFolder.map((final TableTrack track) => track.id)))).go();
       //delete all tracks that use this base folder
-      final int deletedTrackEntries = await (delete(tableTracks)..where((final $TableTracksTable tbl) => tbl.baseFolderId.equals(folder.id))).go();
-      print("deletedTrackEntries: $deletedTrackEntries");
+      await (delete(tableTracks)..where((final $TableTracksTable tbl) => tbl.baseFolderId.equals(folder.id))).go();
       //delete the base folder
       final int deletedFolderEntries = await (delete(tableBaseFolders)..where((final $TableBaseFoldersTable tableBaseFolders) => tableBaseFolders.id.equals(folder.id))).go();
-      print("deletedFolderEntries: $deletedFolderEntries");
       success = deletedFolderEntries > 0;
     }
     catch (_){}

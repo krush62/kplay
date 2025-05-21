@@ -8,6 +8,7 @@ import 'package:kplay/settings_page.dart';
 import 'package:kplay/system_page.dart';
 import 'package:kplay/utils/audio_player_state.dart';
 import 'package:kplay/utils/database.dart';
+import 'package:kplay/utils/file_helper.dart';
 
 late AppDatabase appdb;
 
@@ -68,8 +69,6 @@ enum PlaylistType
 
 class _KPlayState extends State<KPlay>
 {
-  //TODO just_audio
-  //final AudioPlayer player = AudioPlayer();
   final AudioPlayerState audioPlayerState = AudioPlayerState();
   final ValueNotifier<NavigationState> _selectedNavigation = ValueNotifier<NavigationState>(NavigationState.player);
   final List<Widget> _navigationDestinations = <Widget>[];
@@ -157,17 +156,13 @@ class _KPlayState extends State<KPlay>
       }
     },);
 
-    //TODO just_audio
-    /*player.sequenceStateStream.listen((final SequenceState? state) {
-      if (state != null)
+    audioPlayerState.audioBackendState.addListener(() {
+      if (audioPlayerState.audioBackendState.value.currentTrack != null && currentTrack.value != audioPlayerState.audioBackendState.value.currentTrack!.dbTrack)
       {
-        if (state.currentSource != null && state.currentSource!.tag is MutableTrack && state.currentSource!.tag != currentTrack.value)
-        {
-          currentTrack.value = state.currentSource!.tag as MutableTrack;
-          getImageForTrack(path: currentTrack.value!.path).then((final Uint8List? data) {imageData.value = data;});
-        }
+        currentTrack.value = audioPlayerState.audioBackendState.value.currentTrack!.dbTrack;
+        getImageForTrack(path: currentTrack.value!.path).then((final Uint8List? data) {imageData.value = data;});
       }
-    });*/
+    },);
   }
 
   Future<void> toggleFavorite() async
@@ -179,13 +174,11 @@ class _KPlayState extends State<KPlay>
       {
         currentTrack.value = MutableTrack.fromTableTrack(updatedTrack);
 
-        //TODO just_audio
-        /*
-        if (player.sequenceState != null && player.sequenceState!.currentSource != null && player.sequenceState!.currentSource!.tag is MutableTrack)
+        if (audioPlayerState.audioBackendState.value.currentTrack != null)
         {
-          final MutableTrack playlistTrack = player.sequenceState!.currentSource!.tag as MutableTrack;
-          playlistTrack.isFavorite = updatedTrack.isFavorite;
-        }*/
+          audioPlayerState.audioBackendState.value.currentTrack!.dbTrack.isFavorite = updatedTrack.isFavorite;
+        }
+
         final List<TableTrack> favoriteTracks = await appdb.getFavoriteTracks();
         final List<MutableTrack> favoriteTracksMutable = <MutableTrack>[];
         for (final TableTrack track in favoriteTracks)
@@ -199,23 +192,30 @@ class _KPlayState extends State<KPlay>
 
   Future<void> _populatePlayerPlaylist({required final List<MutableTrack> tracks}) async
   {
-    //TODO just_audio
-    /*final List<AudioSource> sources = <AudioSource>[];
-
-    for (final MutableTrack track in tracks)
+    //CHECK IF THE PLAYLIST IS ALREADY IN THE PLAYER
+    bool isSame = true;
+    if (audioPlayerState.playlist.value.length == tracks.length)
     {
-      sources.add(AudioSource.file(track.path, tag: track));
+      for (int i = 0; i < tracks.length; i++)
+      {
+        if (audioPlayerState.playlist.value[i].dbTrack.id != tracks[i].id)
+        {
+          isSame = false;
+          break;
+        }
+      }
     }
-    sources.shuffle();
-    final ConcatenatingAudioSource source = ConcatenatingAudioSource(
-      useLazyPreparation: false,
-      shuffleOrder: DefaultShuffleOrder(),
-      children: sources,
-    );
-    await player.setAudioSource(source);
-    await player.setShuffleModeEnabled(true);
-    await player.setLoopMode(LoopMode.all);
-    */
+    else
+    {
+      isSame = false;
+    }
+
+    if (!isSame)
+    {
+      await audioPlayerState.setPlaylist(playlistFromDB: tracks);
+      //TODO THERE IS NO SHUFFLE AT THE MOMENT (OR REPEAT ALL)
+    }
+
   }
 
 
@@ -232,6 +232,7 @@ class _KPlayState extends State<KPlay>
           favoriteTracks.add(MutableTrack.fromTableTrack(track));
         }
       }
+
       allPlaylistTracks.value = allTracks;
       favoritePlaylistTracks.value = favoriteTracks;
     });
@@ -240,15 +241,7 @@ class _KPlayState extends State<KPlay>
 
   void selectTrack({required final MutableTrack track})
   {
-    //TODO just_audio
-    /*if (player.sequence != null)
-    {
-      final IndexedAudioSource? source = player.sequence!.where((final IndexedAudioSource s) => s.tag is MutableTrack && (s.tag as MutableTrack).id == track.id).singleOrNull;
-      if (source != null)
-      {
-        player.seek(Duration.zero, index: player.sequence!.indexOf(source));
-      }
-    }*/
+    audioPlayerState.selectTrack(track);
   }
 
 
@@ -283,8 +276,7 @@ class _KPlayState extends State<KPlay>
             switch(selectedNav)
             {
               case NavigationState.player:
-                //TODO just_audio
-                return PlayerPage(/*player: player,*/ imageData: imageData, currentTrack: currentTrack, toggleFavorite: toggleFavorite, playlistType: playlistType,);
+                return PlayerPage(audioPlayerState: audioPlayerState, imageData: imageData, currentTrack: currentTrack, toggleFavorite: toggleFavorite, playlistType: playlistType,);
               case NavigationState.browser:
                 return PlaylistPage(allPlaylistTracks: allPlaylistTracks, favoritePlaylistTracks: favoritePlaylistTracks, playlistType: playlistType, currentTrack: currentTrack, selectTrack: selectTrack,);
               case NavigationState.settings:

@@ -3,16 +3,17 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:kplay/main.dart';
+import 'package:kplay/utils/audio_player_state.dart';
 import 'package:kplay/utils/database.dart';
+import 'package:kplay/utils/helpers.dart';
 
 class PlayerPage extends StatefulWidget
 {
-  const PlayerPage({super.key, /*required this.player,*/ required this.imageData, required this.currentTrack, required this.playlistType, required this.toggleFavorite});
+  const PlayerPage({super.key, required this.audioPlayerState, required this.imageData, required this.currentTrack, required this.playlistType, required this.toggleFavorite});
 
   final Function() toggleFavorite;
   final ValueNotifier<Uint8List?> imageData;
-  //TODO just_audio
-  //final AudioPlayer player;
+  final AudioPlayerState audioPlayerState;
   final ValueNotifier<MutableTrack?> currentTrack;
   final ValueNotifier<PlaylistType> playlistType;
 
@@ -31,29 +32,17 @@ class _PlayerPageState extends State<PlayerPage>
 
   Future<void> _playPressed() async
   {
-    //TODO just_audio
-    /*
-    if (widget.player.playing)
-    {
-      await widget.player.pause();
-    }
-    else
-    {
-      await widget.player.play();
-    }
-    */
+    widget.audioPlayerState.audioBackendState.value.playbackState == PlaybackState.playing ? await widget.audioPlayerState.pause() : await widget.audioPlayerState.play();
   }
 
   void _nextPressed()
   {
-    //TODO just_audio
-    //widget.player.seekToNext();
+    widget.audioPlayerState.next();
   }
 
   void _previousPressed()
   {
-    //TODO just_audio
-    //widget.player.seekToPrevious();
+    widget.audioPlayerState.previous();
   }
 
 
@@ -166,13 +155,27 @@ class _PlayerPageState extends State<PlayerPage>
                             children: <Widget>[
                               IconButton(onPressed: track != null ? _previousPressed : null, icon: const Icon(Icons.skip_previous, size: 72,)),
                               const SizedBox(width: 16,),
-                              //TODO just_audio
-                              /*StreamBuilder<PlayerState>(
-                                stream: widget.player.playerStateStream,
-                                builder: (final BuildContext context, final AsyncSnapshot<PlayerState> playerState) {
-                                  return IconButton(onPressed: track != null ?_playPressed : null, icon: Icon(playerState.data != null && playerState.data!.playing ? Icons.pause : Icons.play_arrow, size: 72));
-                                },
-                              ),*/
+                              ValueListenableBuilder<PlaybackState>(
+                                valueListenable: widget.audioPlayerState.playbackState,
+                                  builder: (final BuildContext context, final PlaybackState playbackState, final Widget? child)
+                                  {
+                                    Icon? icon;
+                                    if (playbackState == PlaybackState.playing)
+                                    {
+                                      icon = const Icon(Icons.pause, size: 72,);
+                                    }
+                                    else if (playbackState == PlaybackState.paused || playbackState == PlaybackState.stopped)
+                                    {
+                                      icon = const Icon(Icons.play_arrow, size: 72,);
+                                    }
+                                    else
+                                    {
+                                      icon = const Icon(Icons.question_mark, size: 72,);
+                                    }
+                                    return IconButton(onPressed: playbackState != PlaybackState.disconnected ? _playPressed : null, icon: icon);
+                                  },
+                              ),
+
                               const SizedBox(width: 16,),
                               IconButton(onPressed: track != null ? _nextPressed : null, icon: const Icon(Icons.skip_next, size: 72,)),
                             ],
@@ -187,56 +190,35 @@ class _PlayerPageState extends State<PlayerPage>
             ),
           ),
           const SizedBox(height: 16,),
-          //TODO just_audio
-          /*StreamBuilder<Duration>(
-            stream: widget.player.positionStream,
-            builder: (final BuildContext context, final AsyncSnapshot<Duration> positionSnapshot) {
-              return StreamBuilder<Duration?>(
-                stream: widget.player.durationStream,
-                builder: (final BuildContext context, final AsyncSnapshot<Duration?> durationSnapshot) {
-                  return Slider(
-                      value: positionSnapshot.data != null ? positionSnapshot.data!.inMilliseconds.toDouble() : 0,
-                      max: durationSnapshot.data != null ? durationSnapshot.data!.inMilliseconds.toDouble() : 0,
-                      onChanged: (final double value) {
-                        widget.player.seek(Duration(milliseconds: value.toInt()));
+          ValueListenableBuilder<double>(
+              valueListenable: widget.audioPlayerState.audioPositionFactor,
+              builder: (final BuildContext context, final double position, final Widget? child) {
+                return Slider(
+                  value: position,
+                  onChanged: (final double value) {
+                    widget.audioPlayerState.seek(value);
+                  },
+                );
+              },
+          ),
+
+          ValueListenableBuilder<int>(
+            valueListenable: widget.audioPlayerState.duration,
+            builder: (final BuildContext context, final int duration, final Widget? child) {
+              return Row(
+                children: <Widget>[
+                  ValueListenableBuilder<double>(
+                      valueListenable: widget.audioPlayerState.audioPositionFactor,
+                      builder: (final BuildContext context, final double position, final Widget? child) {
+                        return Text(formatDuration(seconds: (position * duration.toDouble()).toInt()), style: Theme.of(context).textTheme.bodyLarge);
                       },
-                  );
-                },
+                  ),
+                  const Expanded(child: SizedBox.shrink()),
+                  Text(formatDuration(seconds: duration), style: Theme.of(context).textTheme.bodyLarge),
+                ],
               );
+
             },
-          ),*/
-          Row(
-            children: <Widget>[
-              //TODO just_audio
-              /*
-              StreamBuilder<Duration>(
-                stream: widget.player.positionStream,
-                builder: (final BuildContext context, final AsyncSnapshot<Duration> snapshot)
-                {
-                  return Text(snapshot.data != null ? formatDuration(seconds: snapshot.data!.inSeconds) : "0:00", style: Theme.of(context).textTheme.bodyLarge);
-                },
-              ),*/
-              const Expanded(child: SizedBox.shrink()),
-              //TODO just_audio
-              /*StreamBuilder<Duration?>(
-                stream: widget.player.durationStream,
-                builder: (final BuildContext context, final AsyncSnapshot<Duration?> snapshot)
-                {
-                  return Text(snapshot.data != null ? formatDuration(seconds: snapshot.data!.inSeconds) : "0:00", style: Theme.of(context).textTheme.bodyLarge);
-                },
-              ),*/
-
-
-              /*ValueListenableBuilder<TableTrack?>(
-                valueListenable: widget.currentTrack,
-                builder: (final BuildContext context, final TableTrack? track, final Widget? child)
-                {
-                  return Text(
-                      track != null ? formatDuration(seconds: track.duration) : "0:00",
-                      style: Theme.of(context).textTheme.bodyLarge,);
-                },
-              ),*/
-            ],
           ),
         ],
       ),

@@ -40,12 +40,13 @@ String generatePassword({required final int length})
   const String numbers = "1234567890";
   const String seed = upper + lower + numbers;
   final int passLength = length.clamp(6, 16);
-  String password = '';
   final List<String> list = seed.split('').toList();
   final Random rand = Random();
+  final StringBuffer sb = StringBuffer();
   for (int i = 0; i < passLength; i++) {
     final int index = rand.nextInt(list.length);
-    password += list[index];
+    sb.write(list[index]);
+
   }
-  return password;
+  return sb.toString();
 }
