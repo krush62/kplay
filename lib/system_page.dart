@@ -54,6 +54,7 @@ class _SystemPageState extends State<SystemPage>
   {
     if (_brightnessFilePath != null)
     {
+      stdout.writeln("Setting brightness to $brightness");
       await Process.run("echo", <String>[brightness.toString(), "|", "tee", _brightnessFilePath!]);
     }
   }

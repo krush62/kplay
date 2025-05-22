@@ -7,7 +7,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:kplay/utils/database.dart';
 import 'package:kplay/utils/helpers.dart';
+import 'package:path_provider/path_provider.dart';
 
+import 'package:path/path.dart' as p;
 
 enum PlaybackState
 {
@@ -178,17 +180,38 @@ class AudioPlayerState
   {
     await clearPlaylist();
 
-    playlistFromDB.shuffle();
+    //TODO make sure vlc itself shuffles!
+    //playlistFromDB.shuffle();
+
+    //TODO create playlist file for vlc and load that one (m3u8)
+    /*
+    #EXTM3U
+    file:///C:/Music/Folder%20with%20Spaces/Track1.mp3
+    file:///C:/Music/Folder%20with%20Spaces/Track2.mp3
+
+     */
+    //curl -u :yourpassword "http://localhost:8080/requests/status.json?command=in_play&input=file:///C:/Music/playlist.m3u"
+
+    final StringBuffer m3uBuffer = StringBuffer();
+    m3uBuffer.writeln("#EXTM3U");
     for (final MutableTrack track in playlistFromDB)
     {
       final String urlPath = Uri.encodeFull(track.path.replaceAll("\\", "/"));
-      final ProcessResult insertResult = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=in_enqueue&input=file:///$urlPath"]);
-      if (insertResult.exitCode != 0)
-      {
-        stdout.writeln("Adding track failed: $track");
-        break;
-      }
+      m3uBuffer.writeln("file:///$urlPath");
     }
+    final String timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
+    final String m3u8Name = "playlist_$timestamp.m3u8";
+    final Directory supportDir = await getApplicationCacheDirectory();
+    if (!await supportDir.exists()) {
+      await supportDir.create(recursive: true);
+    }
+
+    final String fileName = p.join(supportDir.path, m3u8Name);
+
+    final File file = File(fileName);
+    await file.writeAsString(m3uBuffer.toString());
+    final String escapedM3uPath = Uri.encodeFull(fileName.replaceAll("\\", "/"));
+    await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=in_play&input=file:///$escapedM3uPath"]);
 
     final ProcessResult playlistResult = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/playlist.json"]);
     if (playlistResult.exitCode == 0)

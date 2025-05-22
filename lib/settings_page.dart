@@ -10,12 +10,13 @@ import 'package:path/path.dart' as p; //TODO take care of this warning and the m
 
 class SettingsPage extends StatefulWidget
 {
-  const SettingsPage({super.key, required this.db, required this.errorCallback, required this.allPlaylistTracks, required this.favoritePlaylistTracks});
+  const SettingsPage({super.key, required this.db, required this.errorCallback, required this.allPlaylistTracks, required this.favoritePlaylistTracks, required this.baseFolderNotifier});
 
   final AppDatabase db;
   final void Function({required String message, int seconds}) errorCallback;
   final ValueNotifier<List<MutableTrack>> allPlaylistTracks;
   final ValueNotifier<List<MutableTrack>> favoritePlaylistTracks;
+  final ValueNotifier<List<TableBaseFolder>> baseFolderNotifier;
 
 
   @override
@@ -25,7 +26,7 @@ class SettingsPage extends StatefulWidget
 class _SettingsPageState extends State<SettingsPage>
 {
   final int _textTruncateChars = 48;
-  final ValueNotifier<List<TableBaseFolder>> _baseFolderNotifier = ValueNotifier<List<TableBaseFolder>>(<TableBaseFolder>[]);
+
   final ValueNotifier<String?> _currentStatus = ValueNotifier<String?>(null);
   final ValueNotifier<bool> _loadingDialogIsVisible = ValueNotifier<bool>(false);
   final ValueNotifier<bool> _extensionM4a = ValueNotifier<bool>(true);
@@ -145,20 +146,14 @@ class _SettingsPageState extends State<SettingsPage>
   }
 
 
-  @override
-  void dispose() {
-    _baseFolderNotifier.dispose();
-    super.dispose();
-  }
-
   bool baseFoldersAreDifferent(final List<TableBaseFolder> items)
   {
-    if (_baseFolderNotifier.value.length != items.length)
+    if (widget.baseFolderNotifier.value.length != items.length)
     {
       return true;
     }
     for (int i = 0; i < items.length; i++) {
-      if (_baseFolderNotifier.value[i].title != items[i].title) {
+      if (widget.baseFolderNotifier.value[i].title != items[i].title) {
         return true;
       }
     }
@@ -170,8 +165,12 @@ class _SettingsPageState extends State<SettingsPage>
     widget.db.select(widget.db.tableBaseFolders).get().then((final List<TableBaseFolder> items) {
       if (baseFoldersAreDifferent(items))
       {
-        _baseFolderNotifier.value = items;
+        widget.baseFolderNotifier.value = items;
         _updatePlaylists();
+      }
+      else
+      {
+        print("DIFFERENT");
       }
 
     });
@@ -206,7 +205,7 @@ class _SettingsPageState extends State<SettingsPage>
     if (_extensionFlac.value) extensions.add(".flac");
     if (_extensionMp4.value) extensions.add(".mp4");
     _currentStatus.value = "Reading base folders...";
-    getAllMetaData(extensions: extensions, baseFolders: _baseFolderNotifier.value, recursive: _scanRecursive.value, updateLabelNotifier: _currentStatus).then((final List<TableTracksCompanion> tracks) {
+    getAllMetaData(extensions: extensions, baseFolders: widget.baseFolderNotifier.value, recursive: _scanRecursive.value, updateLabelNotifier: _currentStatus).then((final List<TableTracksCompanion> tracks) {
       _filesReadFromBaseFolders(tracks: tracks);
     });
   }
@@ -222,17 +221,9 @@ class _SettingsPageState extends State<SettingsPage>
   }
 
 
-
-
   void _addNewFolderPressed()
   {
     Overlay.of(context).insert(_directoryPickerOverlay);
-    /*FilePicker.platform.getDirectoryPath().then((final String? path) {
-      if (path != null)
-      {
-        _newFolderSelected(path);
-      }
-    },);*/
   }
 
   void _newFolderSelected(final String path)
@@ -293,7 +284,7 @@ class _SettingsPageState extends State<SettingsPage>
                           child: Text("Source Folders", style: Theme.of(context).textTheme.headlineMedium),
                       ),
                       ValueListenableBuilder<List<TableBaseFolder>>(
-                        valueListenable: _baseFolderNotifier,
+                        valueListenable: widget.baseFolderNotifier,
                         builder: (final BuildContext context, final List<TableBaseFolder> baseFolders, final Widget? child) 
                         {
                           final List<Widget> children = <Widget>[];

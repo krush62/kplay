@@ -109,6 +109,7 @@ class _KPlayState extends State<KPlay>
   final ValueNotifier<Uint8List?> imageData = ValueNotifier<Uint8List?>(null);
   final ValueNotifier<PlaylistType> playlistType = ValueNotifier<PlaylistType>(PlaylistType.all);
   final ValueNotifier<MutableTrack?> currentTrack = ValueNotifier<MutableTrack?>(null);
+  final ValueNotifier<List<TableBaseFolder>> _baseFolderNotifier = ValueNotifier<List<TableBaseFolder>>(<TableBaseFolder>[]);
 
   late OverlayEntry _playlistLoadOverlay;
   static const Duration _waitTimeForAudioPlayer = Duration(seconds: 5);
@@ -164,7 +165,9 @@ class _KPlayState extends State<KPlay>
       _navigationDestinations.add(destination);
     }
     _setupListeners();
-    appdb.databaseCheck().then((final bool success) {databaseTestFinished(success);});
+    _initDB().then((final (List<MutableTrack>, List<MutableTrack>) value) {
+      _databaseTestFinished(value.$1, value.$2);
+    });
   }
 
   void _setupListeners()
@@ -215,6 +218,30 @@ class _KPlayState extends State<KPlay>
         getImageForTrack(path: currentTrack.value!.path).then((final Uint8List? data) {imageData.value = data;});
       }
     },);
+  }
+
+  Future<(List<MutableTrack>, List<MutableTrack>)> _initDB() async
+  {
+    final bool success = await appdb.databaseCheck();
+    showSnackbarMessage(message: "Database check performed with result: $success");
+    final List<TableTrack> tracks = await appdb.getAllTracks();
+    final List<MutableTrack> allTracks = <MutableTrack>[];
+    final List<MutableTrack> favoriteTracks = <MutableTrack>[];
+    for (final TableTrack track in tracks)
+    {
+      allTracks.add(MutableTrack.fromTableTrack(track));
+      if (track.isFavorite)
+      {
+        favoriteTracks.add(MutableTrack.fromTableTrack(track));
+      }
+    }
+    return (allTracks, favoriteTracks);
+  }
+
+  void _databaseTestFinished(final List<MutableTrack> allTracks, final List<MutableTrack> favoriteTracks)
+  {
+    allPlaylistTracks.value = allTracks;
+    favoritePlaylistTracks.value = favoriteTracks;
   }
 
   void _playlistCreationFinished()
@@ -277,7 +304,6 @@ class _KPlayState extends State<KPlay>
       while (DateTime.now().isBefore(targetTime) && !audioPlayerState.initialized)
       {
         await Future<void>.delayed(const Duration(milliseconds: 100));
-        print("WAITING....");
       }
 
       await audioPlayerState.setPlaylist(playlistFromDB: tracks);
@@ -285,26 +311,6 @@ class _KPlayState extends State<KPlay>
     }
   }
 
-
-  void databaseTestFinished(final bool success)
-  {
-    appdb.getAllTracks().then((final List<TableTrack> tracks) {
-      final List<MutableTrack> allTracks = <MutableTrack>[];
-      final List<MutableTrack> favoriteTracks = <MutableTrack>[];
-      for (final TableTrack track in tracks)
-      {
-        allTracks.add(MutableTrack.fromTableTrack(track));
-        if (track.isFavorite)
-        {
-          favoriteTracks.add(MutableTrack.fromTableTrack(track));
-        }
-      }
-
-      allPlaylistTracks.value = allTracks;
-      favoritePlaylistTracks.value = favoriteTracks;
-    });
-    showSnackbarMessage(message: "Database check performed with result: $success");
-  }
 
   void selectTrack({required final MutableTrack track})
   {
@@ -347,7 +353,7 @@ class _KPlayState extends State<KPlay>
               case NavigationState.browser:
                 return PlaylistPage(allPlaylistTracks: allPlaylistTracks, favoritePlaylistTracks: favoritePlaylistTracks, playlistType: playlistType, currentTrack: currentTrack, selectTrack: selectTrack,);
               case NavigationState.settings:
-                return SettingsPage(db: appdb, errorCallback: showSnackbarMessage, allPlaylistTracks: allPlaylistTracks, favoritePlaylistTracks: favoritePlaylistTracks,);
+                return SettingsPage(db: appdb, errorCallback: showSnackbarMessage, allPlaylistTracks: allPlaylistTracks, favoritePlaylistTracks: favoritePlaylistTracks, baseFolderNotifier: _baseFolderNotifier,);
               case NavigationState.system:
                 return const SystemPage();
             }
