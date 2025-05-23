@@ -367,7 +367,8 @@ class MaterialTheme {
 
     iconButtonTheme: IconButtonThemeData(
       style: ButtonStyle(
-        padding: const WidgetStatePropertyAll<EdgeInsets>(EdgeInsets.all(4.0)),
+        padding: const WidgetStatePropertyAll<EdgeInsets>(EdgeInsets.zero),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         shape: WidgetStateProperty.all(
           const RoundedRectangleBorder(
             borderRadius:

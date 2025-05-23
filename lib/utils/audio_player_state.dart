@@ -7,9 +7,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:kplay/utils/database.dart';
 import 'package:kplay/utils/helpers.dart';
-import 'package:path_provider/path_provider.dart';
-
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 enum PlaybackState
 {
@@ -199,9 +198,10 @@ class AudioPlayerState
     final File file = File(fileName);
     await file.writeAsString(m3uBuffer.toString());
     final String escapedM3uPath = Uri.encodeFull(fileName.replaceAll("\\", "/"));
-    await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=in_play&input=file:///$escapedM3uPath"]);
-    stdout.writeln("Waiting for VLC for 2 seconds");
-    await Future<void>.delayed(const Duration(seconds: 2));
+    await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=in_enqueue&input=file:///$escapedM3uPath"]);
+    const int waitTimeSeconds = 4;
+    stdout.writeln("Waiting for VLC for $waitTimeSeconds seconds");
+    await Future<void>.delayed(const Duration(seconds: waitTimeSeconds));
     await next();
     await pause();
 
@@ -223,8 +223,6 @@ class AudioPlayerState
             entries.add(PlaylistEntry(dbTrack: playlistFromDB[i], playlistId: leafIds[i]));
           }
           playlist.value = entries;
-          //await pause();
-          //await next();
           break;
         }
         else
@@ -240,8 +238,6 @@ class AudioPlayerState
       await Future<void>.delayed(const Duration(milliseconds: 500));
     }
     stdout.writeln("Setting playlist finished!");
-
-
   }
 
   void _collectLeafIds(final Map<String, dynamic> node, final List<String> leafIds) {

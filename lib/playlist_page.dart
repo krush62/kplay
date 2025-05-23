@@ -40,18 +40,22 @@ class _PlaylistPageState extends State<PlaylistPage>
               onSelectionChanged: (final Set<PlaylistType> p0) {
                 widget.playlistType.value = p0.first;
               },
+              style: ButtonStyle(
+                padding: WidgetStateProperty.all<EdgeInsetsGeometry>(const EdgeInsets.all(4)),
+              ),
+              expandedInsets: EdgeInsets.zero,
               showSelectedIcon: false,
               segments:
-                const <ButtonSegment<PlaylistType>>[
+                 <ButtonSegment<PlaylistType>>[
                   ButtonSegment<PlaylistType>(
-                    icon: Icon(Icons.reorder, size: 32,),
+                    icon: const Icon(Icons.reorder, size: 20,),
                     value: PlaylistType.all,
-                    label: Text("All"),
+                    label: Text("All", style: Theme.of(context).textTheme.titleLarge),
                   ),
                   ButtonSegment<PlaylistType>(
-                    icon: Icon(Icons.favorite, size: 27),
+                    icon: const Icon(Icons.favorite, size: 18),
                     value: PlaylistType.favorite,
-                    label: Text("Favorite"),
+                    label: Text("Favorite", style: Theme.of(context).textTheme.titleLarge),
                   ),
                 ],
                 selected: <PlaylistType>{type},
@@ -74,12 +78,16 @@ class _PlaylistPageState extends State<PlaylistPage>
                       itemBuilder: (final BuildContext context, final int index)
                       {
                         final ListTile tile = ListTile(
+                          //contentPadding: const EdgeInsets.only(left: 8, right: 8),
                           selected: widget.allPlaylistTracks.value[index] == currentTrack,
-                          title: Text(widget.allPlaylistTracks.value[index].title, maxLines: 1,),
-                          subtitle: Text(widget.allPlaylistTracks.value[index].albumArtist, maxLines: 1,),
-                          trailing: Text(formatDuration(seconds: widget.allPlaylistTracks.value[index].duration)),
+                          title: Text(widget.allPlaylistTracks.value[index].title, maxLines: 1, style: Theme.of(context).textTheme.titleMedium,),
+                          subtitle: Text(widget.allPlaylistTracks.value[index].albumArtist, maxLines: 1, style: Theme.of(context).textTheme.labelMedium!.copyWith(color: Theme.of(context).colorScheme.onSecondaryContainer),),
+                          trailing: Text(formatDuration(seconds: widget.allPlaylistTracks.value[index].duration), style: Theme.of(context).textTheme.titleMedium!.copyWith(color: Theme.of(context).colorScheme.onSecondaryContainer),),
                           leading: const Icon(Icons.music_note, size: 32,),
                           onTap: () {widget.selectTrack(track: widget.allPlaylistTracks.value[index]);},
+                          minTileHeight: 20,
+                          minVerticalPadding: 4,
+
                         );
                         if (index == 0 || widget.allPlaylistTracks.value[index].album != widget.allPlaylistTracks.value[index - 1].album)
                         {
@@ -88,10 +96,7 @@ class _PlaylistPageState extends State<PlaylistPage>
                             children: <Widget>[
                               ColoredBox(
                                 color: Theme.of(context).colorScheme.primaryContainer,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: Text("${widget.allPlaylistTracks.value[index].album} (${widget.allPlaylistTracks.value[index].pubYear})", textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall!.apply(color: Theme.of(context).colorScheme.onPrimaryContainer)),
-                                ),
+                                child: Text("${widget.allPlaylistTracks.value[index].album} (${widget.allPlaylistTracks.value[index].pubYear})", textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium!.apply(color: Theme.of(context).colorScheme.onPrimaryContainer)),
                               ),
                               tile,
                             ],

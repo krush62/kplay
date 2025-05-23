@@ -327,7 +327,7 @@ class _KPlayState extends State<KPlay>
             },
             selectedIndex: _navigationStateMapReverse[selectedNav] ?? 0,
             labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
-            height: 50,
+            height: 40,
             destinations: _navigationDestinations,
           );
         },

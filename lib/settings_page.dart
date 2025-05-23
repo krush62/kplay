@@ -168,11 +168,6 @@ class _SettingsPageState extends State<SettingsPage>
         widget.baseFolderNotifier.value = items;
         _updatePlaylists();
       }
-      else
-      {
-        print("DIFFERENT");
-      }
-
     });
   }
 
@@ -281,7 +276,7 @@ class _SettingsPageState extends State<SettingsPage>
                   Row(
                     children: <Widget>[
                       Expanded(
-                          child: Text("Source Folders", style: Theme.of(context).textTheme.headlineMedium),
+                          child: Text("Source Folders", style: Theme.of(context).textTheme.titleLarge),
                       ),
                       ValueListenableBuilder<List<TableBaseFolder>>(
                         valueListenable: widget.baseFolderNotifier,
@@ -294,11 +289,11 @@ class _SettingsPageState extends State<SettingsPage>
                             final Row row = Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: <Widget>[
-                                Text(truncateFront(text: p.basename(baseFolder.title), maxChars: _textTruncateChars), style: const TextStyle(fontSize: 20),),
+                                Text(truncateFront(text: p.basename(baseFolder.title), maxChars: _textTruncateChars), style: Theme.of(context).textTheme.titleMedium,),
                                 const SizedBox(width: 16,),
                                 SizedBox(
-                                  width: 32,
-                                  height: 32,
+                                  width: 30,
+                                  height: 30,
                                   child: IconButton.filledTonal(
                                     onPressed: () {
                                       _deleteFolder(baseFolder);
@@ -322,7 +317,7 @@ class _SettingsPageState extends State<SettingsPage>
                             }
 
                           }
-                          children.add(IconButton.filledTonal(onPressed: _addNewFolderPressed, icon: const Icon(Icons.add)));
+                          children.add(IconButton.filledTonal(onPressed: _addNewFolderPressed, icon: const Icon(Icons.add,)));
                           children.add(const SizedBox(height: 8,));
                           return Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children));
                         },
@@ -333,7 +328,7 @@ class _SettingsPageState extends State<SettingsPage>
                   Row(
                     children: <Widget>[
                       Expanded(
-                        child: Text("Recursive", style: Theme.of(context).textTheme.headlineMedium),
+                        child: Text("Recursive", style: Theme.of(context).textTheme.titleLarge),
                       ),
                       Expanded(
                         child: ValueListenableBuilder<bool>(
@@ -371,7 +366,7 @@ class _SettingsPageState extends State<SettingsPage>
                                   onChanged: (final bool? value) {
                                     _extensionFlac.value = value ?? false;
                                   },
-                                  title: Text("flac", style: Theme.of(context).textTheme.headlineSmall),
+                                  title: Text("flac", style: Theme.of(context).textTheme.titleLarge),
                                 );
                               },
                             ),
@@ -384,7 +379,7 @@ class _SettingsPageState extends State<SettingsPage>
                                   onChanged: (final bool? value) {
                                     _extensionM4a.value = value ?? false;
                                   },
-                                  title: Text("m4a", style: Theme.of(context).textTheme.headlineSmall),
+                                  title: Text("m4a", style: Theme.of(context).textTheme.titleLarge),
                                 );
                               },
                             ),
@@ -397,7 +392,7 @@ class _SettingsPageState extends State<SettingsPage>
                                   onChanged: (final bool? value) {
                                     _extensionMp3.value = value ?? false;
                                   },
-                                  title: Text("mp3", style: Theme.of(context).textTheme.headlineSmall),
+                                  title: Text("mp3", style: Theme.of(context).textTheme.titleLarge),
                                 );
                               },
                             ),
@@ -410,7 +405,7 @@ class _SettingsPageState extends State<SettingsPage>
                                   onChanged: (final bool? value) {
                                     _extensionMp4.value = value ?? false;
                                   },
-                                  title: Text("mp4", style: Theme.of(context).textTheme.headlineSmall),
+                                  title: Text("mp4", style: Theme.of(context).textTheme.titleLarge),
                                 );
                               },
                             ),
@@ -423,7 +418,7 @@ class _SettingsPageState extends State<SettingsPage>
                                   onChanged: (final bool? value) {
                                     _extensionOgg.value = value ?? false;
                                   },
-                                  title: Text("ogg", style: Theme.of(context).textTheme.headlineSmall),
+                                  title: Text("ogg", style: Theme.of(context).textTheme.titleLarge),
                                 );
                               },
                             ),
@@ -436,7 +431,7 @@ class _SettingsPageState extends State<SettingsPage>
                                   onChanged: (final bool? value) {
                                     _extensionOpus.value = value ?? false;
                                   },
-                                  title: Text("opus", style: Theme.of(context).textTheme.headlineSmall),
+                                  title: Text("opus", style: Theme.of(context).textTheme.titleLarge),
                                 );
                               },
                             ),
@@ -458,7 +453,7 @@ class _SettingsPageState extends State<SettingsPage>
             child: Row(
               children: <Widget>[
                 Expanded(
-                  child: IconButton.outlined(
+                  child: IconButton.filledTonal(
                     onPressed: _onRefresh,
                     icon: const Icon(Icons.refresh, size: 48),
                   ),

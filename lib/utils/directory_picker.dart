@@ -61,7 +61,7 @@ class _DirectoryPickerState extends State<DirectoryPicker>
   @override
   Widget build(final BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(4.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
@@ -91,13 +91,15 @@ class _DirectoryPickerState extends State<DirectoryPicker>
                   {
                     final List<Widget> rows = <Widget>[];
                     rows.add(_getRow(dir: dir.parent, onTap: _directorySelected, title: ".."));
-
                     final List<FileSystemEntity> subDirs = dir.listSync();
+                    final List<Directory> sortedDirs = subDirs
+                        .whereType<Directory>()
+                        .toList()
+                      ..sort((final FileSystemEntity a, final FileSystemEntity b) => a.path.compareTo(b.path));
+
                     // get the subdirectories
-                    for (final FileSystemEntity d in subDirs) {
-                      if (d is Directory) {
+                    for (final Directory d in sortedDirs) {
                         rows.add(_getRow(dir: d, onTap: _directorySelected));
-                      }
                     }
                     return Column(
                       children: rows,
