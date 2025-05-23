@@ -200,6 +200,8 @@ class AudioPlayerState
     await file.writeAsString(m3uBuffer.toString());
     final String escapedM3uPath = Uri.encodeFull(fileName.replaceAll("\\", "/"));
     await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=in_play&input=file:///$escapedM3uPath"]);
+    stdout.writeln("Waiting for VLC for 2 seconds");
+    await Future<void>.delayed(const Duration(seconds: 2));
     await next();
     await pause();
 
@@ -234,9 +236,10 @@ class AudioPlayerState
       {
         stdout.writeln("Could not retrieve playlist!");
       }
+      stdout.writeln("Retrying in 500ms...");
       await Future<void>.delayed(const Duration(milliseconds: 500));
     }
-
+    stdout.writeln("Setting playlist finished!");
 
 
   }
