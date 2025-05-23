@@ -89,7 +89,7 @@ class _PlayerPageState extends State<PlayerPage>
   Widget build(final BuildContext context)
   {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(12.0),
       child: Column(
         children: <Widget>[
           Expanded(
@@ -138,14 +138,15 @@ class _PlayerPageState extends State<PlayerPage>
                             valueListenable: widget.currentTrack,
                             builder: (final BuildContext context, final MutableTrack? track, final Widget? child)
                             {
+                              const double favoriteHeight = 32;
                               Icon icon;
                               if (track != null && track.isFavorite)
                               {
-                                icon = Icon(Icons.favorite, size: 32, color: Theme.of(context).colorScheme.onSecondary,);
+                                icon = Icon(Icons.favorite, size: favoriteHeight, color: Theme.of(context).colorScheme.onSecondary,);
                               }
                               else
                               {
-                                icon = Icon(Icons.favorite_border, size: 32, color: Theme.of(context).colorScheme.onSecondary,);
+                                icon = Icon(Icons.favorite_border, size: favoriteHeight, color: Theme.of(context).colorScheme.onSecondary,);
                               }
 
                               return ValueListenableBuilder<PlaylistType>(
@@ -153,7 +154,7 @@ class _PlayerPageState extends State<PlayerPage>
                                 builder: (final BuildContext context, final PlaylistType playlistType, final Widget? child) {
                                   if (playlistType == PlaylistType.favorite)
                                   {
-                                    return const SizedBox(height: 32,);
+                                    return const SizedBox(height: favoriteHeight,);
                                   }
                                   else
                                   {
@@ -178,11 +179,14 @@ class _PlayerPageState extends State<PlayerPage>
                           return LayoutBuilder(
                             builder: (final BuildContext context, final BoxConstraints constraints) {
                               final String trackTitle = track != null ? track.title : "Track Title";
-                              final String albumTitle = track != null ? track.album : "Album Title";
+                              final String trackAlbum = track != null ? track.album : "Album Title";
+                              final String trackArtist = track != null ?  "${track.albumArtist} (${track.pubYear}) - ${track.artist}" : "";
                               return Column(
                                 children: <Widget>[
-                                  _getAppropriateTextWidget(displayText: trackTitle, maxWidth: constraints.maxWidth, textStyle: Theme.of(context).textTheme.displayMedium!.copyWith(color: Theme.of(context).colorScheme.onPrimaryContainer)),
-                                  _getAppropriateTextWidget(displayText: albumTitle, maxWidth: constraints.maxWidth, textStyle: Theme.of(context).textTheme.titleLarge!.copyWith(color: Theme.of(context).colorScheme.tertiary)),
+                                  _getAppropriateTextWidget(displayText: trackTitle, maxWidth: constraints.maxWidth, textStyle: Theme.of(context).textTheme.displaySmall!.copyWith(color: Theme.of(context).colorScheme.onPrimaryContainer)),
+                                  _getAppropriateTextWidget(displayText: trackAlbum, maxWidth: constraints.maxWidth, textStyle: Theme.of(context).textTheme.titleLarge!.copyWith(color: Theme.of(context).colorScheme.tertiary)),
+                                  const SizedBox(height: 12,),
+                                  _getAppropriateTextWidget(displayText: trackArtist, maxWidth: constraints.maxWidth, textStyle: Theme.of(context).textTheme.titleMedium!.copyWith(color: Theme.of(context).colorScheme.primaryContainer)),
                                 ],
                               );
                             },
@@ -190,7 +194,6 @@ class _PlayerPageState extends State<PlayerPage>
                         },
                       ),
                       const Expanded(child: SizedBox.shrink()),
-                      Divider(height: 1, thickness: 1, color: Theme.of(context).colorScheme.onTertiary),
                       ValueListenableBuilder<MutableTrack?>(
                         valueListenable: widget.currentTrack,
                         builder: (final BuildContext context, final MutableTrack? track, final Widget? child) {
@@ -221,27 +224,6 @@ class _PlayerPageState extends State<PlayerPage>
 
                               IconButton(onPressed: track != null ? _nextPressed : null, icon: Icon(Icons.skip_next, size: 72, color: Theme.of(context).colorScheme.primary)),
                             ],
-                          );
-                        },
-                      ),
-                      Divider(height: 1, thickness: 1, color: Theme.of(context).colorScheme.onTertiary),
-                      const SizedBox(height: 16,),
-                      //const Expanded(child: SizedBox.shrink()),
-                      ValueListenableBuilder<MutableTrack?>(
-                        valueListenable: widget.currentTrack,
-                        builder: (final BuildContext context, final MutableTrack? track, final Widget? child)
-                        {
-                          return LayoutBuilder(
-                            builder: (final BuildContext context, final BoxConstraints constraints) {
-                              final String albumArtistTitle = track != null ?  "${track.albumArtist} (${track.pubYear})" : "Album Artist";
-                              final String artistTitle = track != null ?  track.artist : "Artist";
-                              return Column(
-                                children: <Widget>[
-                                  _getAppropriateTextWidget(displayText: albumArtistTitle, maxWidth: constraints.maxWidth, textStyle: Theme.of(context).textTheme.titleMedium!.copyWith(color: Theme.of(context).colorScheme.primaryContainer)),
-                                  _getAppropriateTextWidget(displayText: artistTitle, maxWidth: constraints.maxWidth, textStyle: Theme.of(context).textTheme.titleMedium!.copyWith(color: Theme.of(context).colorScheme.secondaryContainer)),
-                                ],
-                              );
-                            },
                           );
                         },
                       ),

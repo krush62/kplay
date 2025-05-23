@@ -306,8 +306,8 @@ class _KPlayState extends State<KPlay>
         await Future<void>.delayed(const Duration(milliseconds: 100));
       }
 
-      await audioPlayerState.setPlaylist(playlistFromDB: tracks);
       await audioPlayerState.shuffle(true);
+      await audioPlayerState.setPlaylist(playlistFromDB: tracks);
     }
   }
 

@@ -180,18 +180,6 @@ class AudioPlayerState
   {
     await clearPlaylist();
 
-    //TODO make sure vlc itself shuffles!
-    //playlistFromDB.shuffle();
-
-    //TODO create playlist file for vlc and load that one (m3u8)
-    /*
-    #EXTM3U
-    file:///C:/Music/Folder%20with%20Spaces/Track1.mp3
-    file:///C:/Music/Folder%20with%20Spaces/Track2.mp3
-
-     */
-    //curl -u :yourpassword "http://localhost:8080/requests/status.json?command=in_play&input=file:///C:/Music/playlist.m3u"
-
     final StringBuffer m3uBuffer = StringBuffer();
     m3uBuffer.writeln("#EXTM3U");
     for (final MutableTrack track in playlistFromDB)
@@ -212,32 +200,44 @@ class AudioPlayerState
     await file.writeAsString(m3uBuffer.toString());
     final String escapedM3uPath = Uri.encodeFull(fileName.replaceAll("\\", "/"));
     await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=in_play&input=file:///$escapedM3uPath"]);
+    await next();
+    await pause();
 
-    final ProcessResult playlistResult = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/playlist.json"]);
-    if (playlistResult.exitCode == 0)
+    for (int i = 0; i < 10; i++)
     {
-      final Map<String, dynamic> data = json.decode(playlistResult.stdout.toString()) as Map<String, dynamic>;
-
-      final List<String> leafIds = <String>[];
-      _collectLeafIds(data, leafIds);
-      if (leafIds.length == playlistFromDB.length)
+      final ProcessResult playlistResult = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/playlist.json"]);
+      if (playlistResult.exitCode == 0)
       {
-        final List<PlaylistEntry> entries = <PlaylistEntry>[];
-        for (int i = 0; i < playlistFromDB.length; i++)
+        final String jsonString = playlistResult.stdout.toString();
+        final Map<String, dynamic> data = json.decode(jsonString) as Map<String, dynamic>;
+
+        final List<String> leafIds = <String>[];
+        _collectLeafIds(data, leafIds);
+        if (leafIds.length == playlistFromDB.length)
         {
-          entries.add(PlaylistEntry(dbTrack: playlistFromDB[i], playlistId: leafIds[i]));
+          final List<PlaylistEntry> entries = <PlaylistEntry>[];
+          for (int i = 0; i < playlistFromDB.length; i++)
+          {
+            entries.add(PlaylistEntry(dbTrack: playlistFromDB[i], playlistId: leafIds[i]));
+          }
+          playlist.value = entries;
+          //await pause();
+          //await next();
+          break;
         }
-        playlist.value = entries;
+        else
+        {
+          stdout.writeln("Different number of playlist ids! Expected: ${playlistFromDB.length}, got: ${leafIds.length}");
+        }
       }
       else
       {
-        stdout.writeln("Different number of playlist ids!");
+        stdout.writeln("Could not retrieve playlist!");
       }
+      await Future<void>.delayed(const Duration(milliseconds: 500));
     }
-    else
-    {
-      stdout.writeln("Could not retrieve playlist!");
-    }
+
+
 
   }
 
