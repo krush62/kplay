@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 import 'package:kplay/kplay_theme.dart';
 import 'package:kplay/player_page.dart';
@@ -16,14 +15,6 @@ void main() async
 {
   appdb = AppDatabase();
   runApp(const MyApp());
-  doWhenWindowReady(() {
-    const Size initialSize = Size(800, 480);
-    appWindow.minSize = initialSize;
-    appWindow.maxSize = initialSize;
-    appWindow.size = initialSize;
-    appWindow.alignment = Alignment.center;
-    appWindow.show();
-  });
 }
 
 class MyApp extends StatelessWidget {

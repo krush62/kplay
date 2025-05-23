@@ -185,7 +185,7 @@ class _PlayerPageState extends State<PlayerPage>
                                 children: <Widget>[
                                   _getAppropriateTextWidget(displayText: trackTitle, maxWidth: constraints.maxWidth, textStyle: Theme.of(context).textTheme.displaySmall!.copyWith(color: Theme.of(context).colorScheme.onPrimaryContainer)),
                                   _getAppropriateTextWidget(displayText: trackAlbum, maxWidth: constraints.maxWidth, textStyle: Theme.of(context).textTheme.titleLarge!.copyWith(color: Theme.of(context).colorScheme.tertiary)),
-                                  const SizedBox(height: 12,),
+                                  const SizedBox(height: 8,),
                                   _getAppropriateTextWidget(displayText: trackArtist, maxWidth: constraints.maxWidth, textStyle: Theme.of(context).textTheme.titleMedium!.copyWith(color: Theme.of(context).colorScheme.primaryContainer)),
                                 ],
                               );
