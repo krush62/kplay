@@ -297,8 +297,11 @@ class _KPlayState extends State<KPlay>
         await Future<void>.delayed(const Duration(milliseconds: 100));
       }
 
-      await audioPlayerState.shuffle(true);
+
       await audioPlayerState.setPlaylist(playlistFromDB: tracks);
+      await audioPlayerState.shuffle(true);
+      await audioPlayerState.next();
+      await audioPlayerState.pause();
     }
   }
 
@@ -346,7 +349,7 @@ class _KPlayState extends State<KPlay>
               case NavigationState.settings:
                 return SettingsPage(db: appdb, errorCallback: showSnackbarMessage, allPlaylistTracks: allPlaylistTracks, favoritePlaylistTracks: favoritePlaylistTracks, baseFolderNotifier: _baseFolderNotifier,);
               case NavigationState.system:
-                return const SystemPage();
+                return SystemPage(audioPlayerState: audioPlayerState);
             }
           },
         ),

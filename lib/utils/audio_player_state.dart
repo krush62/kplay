@@ -125,6 +125,7 @@ class AudioPlayerState
   final String _curlCommand = Platform.isWindows ? "curl.exe" : "curl";
   final String _vlcCommand = Platform.isWindows ? "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe" : "vlc";
   bool initialized = false;
+  Process? vlcProcess;
 
   AudioPlayerState()
   {
@@ -166,7 +167,7 @@ class AudioPlayerState
     try
     {
       stdout.writeln("PASSWORD: $_password");
-      await Process.start(_vlcCommand, <String>["-I", "http", "--http-password=$_password"], mode: ProcessStartMode.detached);
+      vlcProcess = await Process.start(_vlcCommand, <String>["-I", "http", "--http-password=$_password"], mode: ProcessStartMode.detached);
       return true;
     }
     catch(_)
@@ -308,6 +309,14 @@ class AudioPlayerState
     final String command = enabled ? "pl_random" : "pl_repeat";
     final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=$command"]);
     return (result.exitCode == 0);
+  }
+
+  Future<void> killVlc() async
+  {
+    if (vlcProcess != null)
+    {
+      bool _ = vlcProcess!.kill();
+    }
   }
 
 }

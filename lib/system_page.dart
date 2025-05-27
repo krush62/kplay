@@ -3,10 +3,11 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as p;
+import 'package:kplay/utils/audio_player_state.dart';
 
 class SystemPage extends StatefulWidget {
-  const SystemPage({super.key});
+  final AudioPlayerState audioPlayerState;
+  const SystemPage({super.key, required this.audioPlayerState});
 
   @override
   State<SystemPage> createState() => _SystemPageState();
@@ -14,59 +15,25 @@ class SystemPage extends StatefulWidget {
 
 class _SystemPageState extends State<SystemPage>
 {
-  final Duration _brightnessSetterInterval = const Duration(milliseconds: 100);
-  final double _bottomIconSize = 48.0;
-  final ValueNotifier<double> _brightness = ValueNotifier<double>(255.0);
-  int _lastTransmittedValue = -1;
-  final ValueNotifier<bool> _displayFound = ValueNotifier<bool>(false);
-  String? _brightnessFilePath;
-  Timer? _brightnessSetTimer;
+  final double _iconSize = 64.0;
+  final double _padding = 16.0;
+  final List<String> _chromeParametersPre = <String>["--no-sandbox", "--kiosk"];
+  final List<String> _chromeParametersPost = <String>["--noerrdialogs", "--disable-infobars", "--disable-session-crashed-bubble"];
+  final String _chromePathWin = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+  final String _chromePathLinux = "/usr/bin/chromium";
+  final String _youtubeUrl = "https://youtube.com";
+  final String _musicUrl = "https://music.youtube.com";
 
   @override
   void initState()
   {
     super.initState();
-    _findDisplay().then((final int? brightness) {
-      if (brightness != null)
-      {
-        _brightness.value = brightness.toDouble();
-        _displayFound.value = true;
-        _brightnessSetTimer = Timer.periodic(_brightnessSetterInterval, _brightnessSetTimerCallback);
-      }
-    });
   }
 
-  void _brightnessSetTimerCallback(final Timer timer)
-  {
-    if (_lastTransmittedValue != _brightness.value.toInt())
-    {
-      writeBrightness(_brightness.value.toInt()).then((_) {
-        _lastTransmittedValue = _brightness.value.toInt();
-      });
-    }
-    else
-    {
-      timer.cancel();
-    }
-  }
-
-  Future<void> writeBrightness(final int brightness) async
-  {
-    if (_brightnessFilePath != null)
-    {
-      stdout.writeln("Setting brightness to $brightness");
-      await Process.run("echo", <String>[brightness.toString(), "|", "tee", _brightnessFilePath!]);
-    }
-  }
-
-  @override
-  void dispose() {
-    _brightnessSetTimer?.cancel();
-    super.dispose();
-  }
 
   Future<void> _onExit() async
   {
+    await widget.audioPlayerState.killVlc();
     if (Platform.isLinux)
     {
       await Process.start("killall", <String>["vlc"], mode: ProcessStartMode.detached);
@@ -76,6 +43,7 @@ class _SystemPageState extends State<SystemPage>
 
   Future<void> _onShutdown() async
   {
+    await widget.audioPlayerState.killVlc();
     if (Platform.isLinux)
     {
       await Process.start("shutdown", <String>["-h", "now"], mode: ProcessStartMode.detached);
@@ -86,73 +54,62 @@ class _SystemPageState extends State<SystemPage>
     }
   }
 
-  Future<int?> _findDisplay() async
+  Future<void> _onYoutubeStart() async
   {
-    final Directory backlightDir = Directory("/sys/class/backlight");
-    if (!await backlightDir.exists())
+    await widget.audioPlayerState.pause();
+    if (Platform.isLinux)
     {
-      stdout.writeln("Backlight directory not found: ${backlightDir.path}");
-      return null;
-    }
-    final List<FileSystemEntity> files = await backlightDir.list().toList();
-    final List<Directory> directories = files.whereType<Directory>().toList();
-    if (directories.length != 1)
-    {
-      stdout.writeln("Backlight directory contains more than one directory: ${backlightDir.path}");
-      return null;
-    }
-    final List<FileSystemEntity> deviceFiles = await directories[0].list().toList();
-    final File? brightnessFile = deviceFiles.where((final FileSystemEntity element) => p.basename(element.path) == "brightness").whereType<File>().toList().firstOrNull;
-    if (brightnessFile == null)
-    {
-      stdout.writeln("Brightness file not found: ${directories[0].path}");
-      return null;
-    }
-    stdout.writeln("Brightness file found: ${brightnessFile.path}");
-    _brightnessFilePath = brightnessFile.path;
-
-    final File? actualBrightnessFile = deviceFiles.where((final FileSystemEntity element) => p.basename(element.path) == "actual_brightness").whereType<File>().toList().firstOrNull;
-    if (actualBrightnessFile == null)
-    {
-      stdout.writeln("Actual brightness file not found: ${directories[0].path}");
-      return null;
+      await Process.start("startx", <String>[_chromePathLinux, ..._chromeParametersPre, _youtubeUrl, ..._chromeParametersPost], mode: ProcessStartMode.detached);
     }
     else
     {
-      final String brightnessString = await actualBrightnessFile.readAsString();
-      return int.tryParse(brightnessString);
+      await Process.start(_chromePathWin, <String>[ ..._chromeParametersPre, _youtubeUrl, ..._chromeParametersPost], mode: ProcessStartMode.detached);
     }
   }
 
-
-  void _setBrightnessSlider(final double value)
+  Future<void> _onMusicStart() async
   {
-    _brightness.value = value;
-    _brightnessSetTimer = Timer.periodic(_brightnessSetterInterval, _brightnessSetTimerCallback);
+    await widget.audioPlayerState.pause();
+    if (Platform.isLinux)
+    {
+      await Process.start("startx", <String>[_chromePathLinux, ..._chromeParametersPre, _musicUrl, ..._chromeParametersPost], mode: ProcessStartMode.detached);
+    }
+    else
+    {
+      await Process.start(_chromePathWin, <String>[ ..._chromeParametersPre, _musicUrl, ..._chromeParametersPost], mode: ProcessStartMode.detached);
+    }
   }
+
 
   @override
   Widget build(final BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: EdgeInsets.all(_padding),
       child: Column(
         children: <Widget>[
-          const Text("Brightness", style: TextStyle(fontSize: 24),),
-          ValueListenableBuilder<bool>(
-            valueListenable: _displayFound,
-            builder: (final BuildContext context, final bool displayFound, final Widget? child)
-            {
-              return ValueListenableBuilder<double>(
-                valueListenable: _brightness,
-                builder: (final BuildContext context, final double brightness, final Widget? child) {
-                  return Slider(
-                    max: 255.0,
-                    value: brightness,
-                    onChanged: displayFound ? _setBrightnessSlider : null,
-                  );
-                },
-              );
-            },
+          const Expanded(
+            child: SizedBox.shrink(),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: <Widget>[
+              SizedBox(
+                width: _padding + _iconSize,
+                height: _padding + _iconSize,
+                child: IconButton.filledTonal(
+                  onPressed: _onYoutubeStart,
+                  icon: Icon(Icons.ondemand_video, size: _iconSize),
+                ),
+              ),
+              SizedBox(
+                width: _padding + _iconSize,
+                height: _padding + _iconSize,
+                child: IconButton.filledTonal(
+                  onPressed: _onMusicStart,
+                  icon: Icon(Icons.music_video, size: _iconSize),
+                ),
+              ),
+            ],
           ),
           const Expanded(
               child: SizedBox.shrink(),
@@ -160,13 +117,21 @@ class _SystemPageState extends State<SystemPage>
           Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
-                IconButton.filled(
-                    onPressed: _onExit,
-                    icon: Icon(Icons.logout, size: _bottomIconSize),
+                SizedBox(
+                  width: _padding + _iconSize,
+                  height: _padding + _iconSize,
+                  child: IconButton.filled(
+                      onPressed: _onExit,
+                      icon: Icon(Icons.logout, size: _iconSize),
+                  ),
                 ),
-                IconButton.filled(
-                    onPressed: _onShutdown,
-                    icon: Icon(Icons.power_settings_new, size: _bottomIconSize),
+                SizedBox(
+                  width: _padding + _iconSize,
+                  height: _padding + _iconSize,
+                  child: IconButton.filled(
+                      onPressed: _onShutdown,
+                      icon: Icon(Icons.power_settings_new, size: _iconSize),
+                  ),
                 ),
               ],
           ),

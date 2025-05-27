@@ -177,6 +177,7 @@ class _PlayerPageState extends State<PlayerPage>
                           ),
                         ],
                       ),
+                      const Expanded(child: SizedBox.shrink()),
                       ValueListenableBuilder<MutableTrack?>(
                         valueListenable: widget.currentTrack,
                         builder: (final BuildContext context, final MutableTrack? track, final Widget? child)
@@ -189,9 +190,9 @@ class _PlayerPageState extends State<PlayerPage>
                               return Column(
                                 children: <Widget>[
                                   _getAppropriateTextWidget(displayText: trackTitle, maxWidth: constraints.maxWidth, textStyle: Theme.of(context).textTheme.displaySmall!.copyWith(color: Theme.of(context).colorScheme.onPrimaryContainer)),
-                                  _getAppropriateTextWidget(displayText: trackAlbum, maxWidth: constraints.maxWidth, textStyle: Theme.of(context).textTheme.titleLarge!.copyWith(color: Theme.of(context).colorScheme.tertiary)),
+                                  _getAppropriateTextWidget(displayText: trackAlbum, maxWidth: constraints.maxWidth, textStyle: Theme.of(context).textTheme.headlineMedium!.copyWith(color: Theme.of(context).colorScheme.tertiary)),
                                   const SizedBox(height: 4,),
-                                  _getAppropriateTextWidget(displayText: trackArtist, maxWidth: constraints.maxWidth, textStyle: Theme.of(context).textTheme.titleSmall!.copyWith(color: Theme.of(context).colorScheme.primaryContainer)),
+                                  _getAppropriateTextWidget(displayText: trackArtist, maxWidth: constraints.maxWidth, textStyle: Theme.of(context).textTheme.titleMedium!.copyWith(color: Theme.of(context).colorScheme.primaryContainer)),
                                 ],
                               );
                             },
@@ -203,9 +204,9 @@ class _PlayerPageState extends State<PlayerPage>
                       ValueListenableBuilder<MutableTrack?>(
                         valueListenable: widget.currentTrack,
                         builder: (final BuildContext context, final MutableTrack? track, final Widget? child) {
-                          const double iconSize = 72;
+                          const double iconSize = 64;
                           return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: <Widget>[
                               IconButton(onPressed: track != null ? _previousPressed : null, icon: Icon(Icons.skip_previous, size: iconSize, color: Theme.of(context).colorScheme.primary,),
                               ),
@@ -263,11 +264,11 @@ class _PlayerPageState extends State<PlayerPage>
                   ValueListenableBuilder<double>(
                       valueListenable: widget.audioPlayerState.audioPositionFactor,
                       builder: (final BuildContext context, final double position, final Widget? child) {
-                        return Text(formatDuration(seconds: (position * duration.toDouble()).toInt()), style: Theme.of(context).textTheme.labelMedium!.copyWith(color: Theme.of(context).colorScheme.secondary));
+                        return Text(formatDuration(seconds: (position * duration.toDouble()).toInt()), style: Theme.of(context).textTheme.titleMedium!.copyWith(color: Theme.of(context).colorScheme.secondary));
                       },
                   ),
                   const Expanded(child: SizedBox.shrink()),
-                  Text(formatDuration(seconds: duration), style: Theme.of(context).textTheme.labelMedium!.copyWith(color: Theme.of(context).colorScheme.secondary)),
+                  Text(formatDuration(seconds: duration), style: Theme.of(context).textTheme.titleMedium!.copyWith(color: Theme.of(context).colorScheme.secondary)),
                 ],
               );
             },
