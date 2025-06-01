@@ -60,7 +60,6 @@ enum PlaylistType
 
 class _KPlayState extends State<KPlay>
 {
-  final AudioPlayerState audioPlayerState = AudioPlayerState();
   final ValueNotifier<NavigationState> _selectedNavigation = ValueNotifier<NavigationState>(NavigationState.player);
   final List<Widget> _navigationDestinations = <Widget>[];
   final Map<int, NavigationState> _navigationStateMap =
@@ -103,13 +102,13 @@ class _KPlayState extends State<KPlay>
   final ValueNotifier<List<TableBaseFolder>> _baseFolderNotifier = ValueNotifier<List<TableBaseFolder>>(<TableBaseFolder>[]);
 
   late OverlayEntry _playlistLoadOverlay;
-  static const Duration _waitTimeForAudioPlayer = Duration(seconds: 5);
+  static const Duration _waitTimeForAudioPlayer = Duration(minutes: 3);
 
   @override
   void initState()
   {
     super.initState();
-
+    AudioPlayerState.init();
     _playlistLoadOverlay = OverlayEntry(
       builder: (final BuildContext context) {
         return Stack(
@@ -133,7 +132,7 @@ class _KPlayState extends State<KPlay>
                         children: <Widget>[
                           CircularProgressIndicator(),
                           SizedBox(width: 20,),
-                          Text("loading playlist..."),
+                          Text("Initializing..."),
                         ],
                       ),
                     ),
@@ -202,10 +201,10 @@ class _KPlayState extends State<KPlay>
       }
     },);
 
-    audioPlayerState.audioBackendState.addListener(() {
-      if (audioPlayerState.audioBackendState.value.currentTrack != null && currentTrack.value != audioPlayerState.audioBackendState.value.currentTrack!.dbTrack)
+    AudioPlayerState.audioBackendState.addListener(() {
+      if (AudioPlayerState.audioBackendState.value.currentTrack != null && currentTrack.value != AudioPlayerState.audioBackendState.value.currentTrack!.dbTrack)
       {
-        currentTrack.value = audioPlayerState.audioBackendState.value.currentTrack!.dbTrack;
+        currentTrack.value = AudioPlayerState.audioBackendState.value.currentTrack!.dbTrack;
         getImageForTrack(path: currentTrack.value!.path).then((final Uint8List? data) {imageData.value = data;});
       }
     },);
@@ -252,9 +251,9 @@ class _KPlayState extends State<KPlay>
       {
         currentTrack.value = MutableTrack.fromTableTrack(updatedTrack);
 
-        if (audioPlayerState.audioBackendState.value.currentTrack != null)
+        if (AudioPlayerState.audioBackendState.value.currentTrack != null)
         {
-          audioPlayerState.audioBackendState.value.currentTrack!.dbTrack.isFavorite = updatedTrack.isFavorite;
+          AudioPlayerState.audioBackendState.value.currentTrack!.dbTrack.isFavorite = updatedTrack.isFavorite;
         }
 
         final List<TableTrack> favoriteTracks = await appdb.getFavoriteTracks();
@@ -272,11 +271,11 @@ class _KPlayState extends State<KPlay>
   {
     //CHECK IF THE PLAYLIST IS ALREADY IN THE PLAYER
     bool isSame = true;
-    if (audioPlayerState.playlist.value.length == tracks.length)
+    if (AudioPlayerState.playlist.value.length == tracks.length)
     {
       for (int i = 0; i < tracks.length; i++)
       {
-        if (audioPlayerState.playlist.value[i].dbTrack.id != tracks[i].id)
+        if (AudioPlayerState.playlist.value[i].dbTrack.id != tracks[i].id)
         {
           isSame = false;
           break;
@@ -292,23 +291,30 @@ class _KPlayState extends State<KPlay>
     {
       Overlay.of(context).insert(_playlistLoadOverlay);
       final DateTime targetTime = DateTime.now().add(_waitTimeForAudioPlayer);
-      while (DateTime.now().isBefore(targetTime) && !audioPlayerState.initialized)
+      while (DateTime.now().isBefore(targetTime) && (!AudioPlayerState.initialized || AudioPlayerState.playbackState.value == PlaybackState.disconnected))
       {
-        await Future<void>.delayed(const Duration(milliseconds: 100));
+        await Future<void>.delayed(const Duration(milliseconds: 250));
       }
 
+      if (AudioPlayerState.initialized && AudioPlayerState.playbackState.value != PlaybackState.disconnected)
+      {
+        await AudioPlayerState.setPlaylist(playlistFromDB: tracks);
+        await AudioPlayerState.shuffle(true);
+        await AudioPlayerState.next();
+        await AudioPlayerState.pause();
+      }
+      else
+      {
+        showSnackbarMessage(message: "Audio player backend not initialized! Timeout reached!");
+      }
 
-      await audioPlayerState.setPlaylist(playlistFromDB: tracks);
-      await audioPlayerState.shuffle(true);
-      await audioPlayerState.next();
-      await audioPlayerState.pause();
     }
   }
 
 
   void selectTrack({required final MutableTrack track})
   {
-    audioPlayerState.selectTrack(track);
+    AudioPlayerState.selectTrack(track);
   }
 
 
@@ -343,13 +349,13 @@ class _KPlayState extends State<KPlay>
             switch(selectedNav)
             {
               case NavigationState.player:
-                return PlayerPage(audioPlayerState: audioPlayerState, imageData: imageData, currentTrack: currentTrack, toggleFavorite: toggleFavorite, playlistType: playlistType,);
+                return PlayerPage(imageData: imageData, currentTrack: currentTrack, toggleFavorite: toggleFavorite, playlistType: playlistType,);
               case NavigationState.browser:
                 return PlaylistPage(allPlaylistTracks: allPlaylistTracks, favoritePlaylistTracks: favoritePlaylistTracks, playlistType: playlistType, currentTrack: currentTrack, selectTrack: selectTrack,);
               case NavigationState.settings:
                 return SettingsPage(db: appdb, errorCallback: showSnackbarMessage, allPlaylistTracks: allPlaylistTracks, favoritePlaylistTracks: favoritePlaylistTracks, baseFolderNotifier: _baseFolderNotifier,);
               case NavigationState.system:
-                return SystemPage(audioPlayerState: audioPlayerState);
+                return const SystemPage();
             }
           },
         ),

@@ -61,8 +61,10 @@ class TablePlaylistTracks extends Table
 
 
 @DriftDatabase(tables: <Type>[TableBaseFolders, TableTracks, TablePlaylists, TablePlaylistTracks])
-class AppDatabase extends _$AppDatabase {
+class AppDatabase extends _$AppDatabase
+{
   AppDatabase([final QueryExecutor? executor]) : super(executor ?? _openConnection());
+  static int trackCount = 0;
 
   @override
   int get schemaVersion => 1;
@@ -111,7 +113,6 @@ class AppDatabase extends _$AppDatabase {
   {
     return (select(tablePlaylists)..where((final $TablePlaylistsTable table) => table.title.equals(dbAllName))).getSingleOrNull();
   }
-
 
   Future<bool> insertTracks({required final List<TableTracksCompanion> tracks}) async
   {
@@ -214,6 +215,7 @@ class AppDatabase extends _$AppDatabase {
       }
 
     }
+    trackCount = tracks.length;
     return tracks;
   }
 

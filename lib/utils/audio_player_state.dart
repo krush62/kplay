@@ -112,22 +112,25 @@ class AudioBackendState
   }
 }
 
+
 class AudioPlayerState
 {
-  final ValueNotifier<AudioBackendState> audioBackendState = ValueNotifier<AudioBackendState>(AudioBackendState.empty());
-  final ValueNotifier<PlaybackState> playbackState = ValueNotifier<PlaybackState>(PlaybackState.disconnected);
-  final ValueNotifier<double> audioPositionFactor = ValueNotifier<double>(0.0);
-  final ValueNotifier<int> duration = ValueNotifier<int>(0);
+  static final ValueNotifier<AudioBackendState> audioBackendState = ValueNotifier<AudioBackendState>(AudioBackendState.empty());
+  static final ValueNotifier<PlaybackState> playbackState = ValueNotifier<PlaybackState>(PlaybackState.disconnected);
+  static final ValueNotifier<double> audioPositionFactor = ValueNotifier<double>(0.0);
+  static final ValueNotifier<int> duration = ValueNotifier<int>(0);
   static const Duration queryInterval = Duration(milliseconds: 500);
   static const double curlTimeout = 0.3;
-  final String _password = generatePassword(length: 12);
-  final ValueNotifier<List<PlaylistEntry>> playlist = ValueNotifier<List<PlaylistEntry>>(<PlaylistEntry>[]);
-  final String _curlCommand = Platform.isWindows ? "curl.exe" : "curl";
-  final String _vlcCommand = Platform.isWindows ? "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe" : "vlc";
-  bool initialized = false;
-  Process? vlcProcess;
+  static final ValueNotifier<String> password = ValueNotifier<String>(generatePassword(length: 12));
+  static final ValueNotifier<List<PlaylistEntry>> playlist = ValueNotifier<List<PlaylistEntry>>(<PlaylistEntry>[]);
+  static final String _curlCommand = Platform.isWindows ? "curl.exe" : "curl";
+  static final String _vlcCommand = Platform.isWindows ? "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe" : "vlc";
+  static bool initialized = false;
+  static Process? vlcProcess;
 
-  AudioPlayerState()
+  AudioPlayerState._();
+
+  static void init()
   {
     _startVLC().then((final bool result) {
       initialized = true;
@@ -138,14 +141,14 @@ class AudioPlayerState
     },);
   }
 
-  void _queryTimeout(final Timer timer)
+  static void _queryTimeout(final Timer timer)
   {
     _getVlcState();
   }
 
-  Future<void> _getVlcState() async
+  static Future<void> _getVlcState() async
   {
-    final ProcessResult curlResult = await Process.run(_curlCommand, <String>["--connect-timeout", "$curlTimeout", "-u", ":$_password", "http://localhost:8080/requests/status.json"]);
+    final ProcessResult curlResult = await Process.run(_curlCommand, <String>["--connect-timeout", "$curlTimeout", "-u", ":$password", "http://localhost:8080/requests/status.json"]);
     if (curlResult.exitCode == 0)
     {
       audioBackendState.value = AudioBackendState.fromJson(curlResult.stdout.toString(), playlist.value);
@@ -160,14 +163,12 @@ class AudioPlayerState
   }
 
 
-  //TODO kill timer and process (? there are no destructors)
-
-  Future<bool> _startVLC() async
+  static Future<bool> _startVLC() async
   {
     try
     {
-      stdout.writeln("PASSWORD: $_password");
-      vlcProcess = await Process.start(_vlcCommand, <String>["-I", "http", "--http-password=$_password"], mode: ProcessStartMode.detached);
+      stdout.writeln("PASSWORD: $password");
+      vlcProcess = await Process.start(_vlcCommand, <String>["-I", "http", "--http-password=$password"], mode: ProcessStartMode.detached);
       return true;
     }
     catch(_)
@@ -176,7 +177,7 @@ class AudioPlayerState
     }
   }
 
-  Future<void> setPlaylist({required final List<MutableTrack> playlistFromDB}) async
+  static Future<void> setPlaylist({required final List<MutableTrack> playlistFromDB}) async
   {
     await clearPlaylist();
 
@@ -199,8 +200,8 @@ class AudioPlayerState
     final File file = File(fileName);
     await file.writeAsString(m3uBuffer.toString());
     final String escapedM3uPath = Uri.encodeFull(fileName.replaceAll("\\", "/"));
-    await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=in_enqueue&input=file:///$escapedM3uPath"]);
-    const int waitTimeSeconds = 4;
+    await Process.run(_curlCommand, <String>["-u", ":$password", "http://localhost:8080/requests/status.json?command=in_enqueue&input=file:///$escapedM3uPath"]);
+    const int waitTimeSeconds = 3;
     stdout.writeln("Waiting for VLC for $waitTimeSeconds seconds");
     await Future<void>.delayed(const Duration(seconds: waitTimeSeconds));
     await next();
@@ -208,7 +209,7 @@ class AudioPlayerState
 
     for (int i = 0; i < 10; i++)
     {
-      final ProcessResult playlistResult = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/playlist.json"]);
+      final ProcessResult playlistResult = await Process.run(_curlCommand, <String>["-u", ":$password", "http://localhost:8080/requests/playlist.json"]);
       if (playlistResult.exitCode == 0)
       {
         final String jsonString = playlistResult.stdout.toString();
@@ -241,7 +242,7 @@ class AudioPlayerState
     stdout.writeln("Setting playlist finished!");
   }
 
-  void _collectLeafIds(final Map<String, dynamic> node, final List<String> leafIds) {
+  static void _collectLeafIds(final Map<String, dynamic> node, final List<String> leafIds) {
     if (node['type'] == 'leaf') {
       leafIds.add(node['id'] as String);
     }
@@ -256,62 +257,62 @@ class AudioPlayerState
     }
   }
 
-  Future<bool> play() async
+  static Future<bool> play() async
   {
-    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=pl_play"]);
+    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$password", "http://localhost:8080/requests/status.json?command=pl_play"]);
     return (result.exitCode == 0);
   }
 
-  Future<bool> pause() async
+  static Future<bool> pause() async
   {
-    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=pl_pause"]);
+    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$password", "http://localhost:8080/requests/status.json?command=pl_pause"]);
     return (result.exitCode == 0);
   }
 
-  Future<bool> next() async
+  static Future<bool> next() async
   {
-    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=pl_next"]);
+    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$password", "http://localhost:8080/requests/status.json?command=pl_next"]);
     return (result.exitCode == 0);
   }
 
-  Future<bool> previous() async
+  static Future<bool> previous() async
   {
-    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=pl_previous"]);
+    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$password", "http://localhost:8080/requests/status.json?command=pl_previous"]);
     return (result.exitCode == 0);
   }
 
-  Future<bool> seek(final double position) async
+  static Future<bool> seek(final double position) async
   {
     final int secondPosition = (position.clamp(0.0, 1.0) * audioBackendState.value.duration.toDouble()).toInt();
-    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=seek&val=$secondPosition"]);
+    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$password", "http://localhost:8080/requests/status.json?command=seek&val=$secondPosition"]);
     return (result.exitCode == 0);
   }
 
-  Future<bool> selectTrack(final MutableTrack track) async
+  static Future<bool> selectTrack(final MutableTrack track) async
   {
     final String? playlistId = playlist.value.where((final PlaylistEntry entry) => entry.dbTrack.id == track.id).singleOrNull?.playlistId;
     if (playlistId != null)
     {
-      final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=pl_play&id=$playlistId"]);
+      final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$password", "http://localhost:8080/requests/status.json?command=pl_play&id=$playlistId"]);
       return (result.exitCode == 0);
     }
     return false;
   }
 
-  Future<bool> clearPlaylist() async
+  static Future<bool> clearPlaylist() async
   {
-    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=pl_empty"]);
+    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$password", "http://localhost:8080/requests/status.json?command=pl_empty"]);
     return (result.exitCode == 0);
   }
 
-  Future<bool> shuffle(final bool enabled) async
+  static Future<bool> shuffle(final bool enabled) async
   {
     final String command = enabled ? "pl_random" : "pl_repeat";
-    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$_password", "http://localhost:8080/requests/status.json?command=$command"]);
+    final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$password", "http://localhost:8080/requests/status.json?command=$command"]);
     return (result.exitCode == 0);
   }
 
-  Future<void> killVlc() async
+  static Future<void> killVlc() async
   {
     if (vlcProcess != null)
     {

@@ -12,11 +12,10 @@ import 'package:marquee/marquee.dart';
 
 class PlayerPage extends StatefulWidget
 {
-  const PlayerPage({super.key, required this.audioPlayerState, required this.imageData, required this.currentTrack, required this.playlistType, required this.toggleFavorite});
+  const PlayerPage({super.key, required this.imageData, required this.currentTrack, required this.playlistType, required this.toggleFavorite});
 
   final Function() toggleFavorite;
   final ValueNotifier<Uint8List?> imageData;
-  final AudioPlayerState audioPlayerState;
   final ValueNotifier<MutableTrack?> currentTrack;
   final ValueNotifier<PlaylistType> playlistType;
 
@@ -36,17 +35,17 @@ class _PlayerPageState extends State<PlayerPage>
 
   Future<void> _playPressed() async
   {
-    widget.audioPlayerState.audioBackendState.value.playbackState == PlaybackState.playing ? await widget.audioPlayerState.pause() : await widget.audioPlayerState.play();
+    AudioPlayerState.audioBackendState.value.playbackState == PlaybackState.playing ? await AudioPlayerState.pause() : await AudioPlayerState.play();
   }
 
   void _nextPressed()
   {
-    widget.audioPlayerState.next();
+    AudioPlayerState.next();
   }
 
   void _previousPressed()
   {
-    widget.audioPlayerState.previous();
+    AudioPlayerState.previous();
   }
 
   Widget _getAppropriateTextWidget({required final String displayText, required final double maxWidth, required final TextStyle? textStyle})
@@ -211,7 +210,7 @@ class _PlayerPageState extends State<PlayerPage>
                               IconButton(onPressed: track != null ? _previousPressed : null, icon: Icon(Icons.skip_previous, size: iconSize, color: Theme.of(context).colorScheme.primary,),
                               ),
                               ValueListenableBuilder<PlaybackState>(
-                                valueListenable: widget.audioPlayerState.playbackState,
+                                valueListenable: AudioPlayerState.playbackState,
                                   builder: (final BuildContext context, final PlaybackState playbackState, final Widget? child)
                                   {
                                     Icon? icon;
@@ -245,24 +244,24 @@ class _PlayerPageState extends State<PlayerPage>
           ),
           const SizedBox(height: 16,),
           ValueListenableBuilder<double>(
-              valueListenable: widget.audioPlayerState.audioPositionFactor,
+              valueListenable: AudioPlayerState.audioPositionFactor,
               builder: (final BuildContext context, final double position, final Widget? child) {
                 return Slider(
                   value: position,
                   onChanged: (final double value) {
-                    widget.audioPlayerState.seek(value);
+                    AudioPlayerState.seek(value);
                   },
                 );
               },
           ),
 
           ValueListenableBuilder<int>(
-            valueListenable: widget.audioPlayerState.duration,
+            valueListenable: AudioPlayerState.duration,
             builder: (final BuildContext context, final int duration, final Widget? child) {
               return Row(
                 children: <Widget>[
                   ValueListenableBuilder<double>(
-                      valueListenable: widget.audioPlayerState.audioPositionFactor,
+                      valueListenable: AudioPlayerState.audioPositionFactor,
                       builder: (final BuildContext context, final double position, final Widget? child) {
                         return Text(formatDuration(seconds: (position * duration.toDouble()).toInt()), style: Theme.of(context).textTheme.titleMedium!.copyWith(color: Theme.of(context).colorScheme.secondary));
                       },
