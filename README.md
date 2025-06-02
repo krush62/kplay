@@ -1,4 +1,8 @@
-# Setup
+# kplay - A simple jukebox for the RaspberryPi
+- flutter as frontend
+- vlc as backend
+
+## Setup
 
 ### 🧰 Hardware Installation
 - *[Optional]* Install cooling solution
@@ -76,7 +80,7 @@ Raspberry Pi Imager
 - *[Optional]* remove not-used profile: `rm ~/.profile` (.bash_profile has exclusive priority)
 - Reboot: `sudo reboot now`
 
-# Build
+## Build
 ### Build on Linux Machine
 - Prepare for FlutterPi (one time only)
 - Install SDK: [Flutter Documentation](https://docs.flutter.dev/get-started/install/linux/desktop) to ~/flutter
