@@ -30,14 +30,19 @@ Raspberry Pi Imager
 - Update System Fonts: `sudo fc-cache`
 - Clone FlutterPi: `git clone --recursive https://github.com/ardera/flutter-pi`
 - Compile and Install FlutterPi:
-  - `cd flutter-pi`
-  - `mkdir build && cd build`
-  - `cmake ..`
-  - ``make -j`nproc` ``
-  - `sudo make install`
-- Clone kplay release
-  - mkdir ~/kplay
-  - **TODO**
+  - Switch to flutter-pi directory: `cd flutter-pi`
+  - Create build directory and switch to it: `mkdir build && cd build`
+  - Build FlutterPi: `cmake ..`
+  - Compile FlutterPi: `make` ``make -j`nproc` ``
+  - Install FlutterPi: `sudo make install`
+
+### ▶ Install kplay
+- install jq for download parsing: `sudo apt-get install jq`
+- Create kplay directory: `mkdir ~/kplay`
+- Switch to directory: `cd ~/kplay`
+- download latest release archive: `curl -s https://api.github.com/repos/krush62/kplay/releases/latest | jq -r '(.assets[].browser_download_url | select(. | contains("tar.gz")))' | xargs wget {} -O kplay_release.tar.gz`
+- extract archive: `tar -xzvf kplay_release.tar.gz`
+- delete archive `rm kplay_release.tar.gz`
 
 ### ⚙ Install Additional Tools for kplay
 | Library  | Purpose                                             |
@@ -49,7 +54,7 @@ Raspberry Pi Imager
 | Chromium | displaying YouTube and YT-Music                     |
 | XOrg     | display server for showing chromium                 |
 | XTerm    | needed by startx/xinit to start with relative paths |
-- `sudo apt-get install vlc exiftool ffmpeg libsqlite3-dev chromium xorg xterm`
+- Install: `sudo apt-get install vlc exiftool ffmpeg libsqlite3-dev chromium xorg xterm`
 
 ### ⚙ Set up Scripts
 - Create bin directory in home: `mkdir ~/bin`
@@ -79,8 +84,7 @@ Raspberry Pi Imager
   - `export PATH="$PATH:~/.pub-cache/bin"`
   - `export PATH="$PATH:~/flutter/bin"` (if that's the flutter location)
 - Install/Activate flutterpi_tool: `flutter pub global activate flutterpi_tool`
-- make sure the flutter project has a Linux target
-- *[when developing on a different machine]* copy relevant folders/files of the flutter project to `~/kplay` (assets/, lib/, linux/, pubspec.yaml)
+- Clone FlutterPi: `git clone --recursive https://github.com/krush62/kplay`
 - build application normally and for FlutterPi:
   - `cd kplay` (project folder)
   - `flutter build linux`
