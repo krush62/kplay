@@ -104,9 +104,22 @@ class _PlayerPageState extends State<PlayerPage>
                       if (imageData != null)
                       {
                         return Center(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.memory(imageData, fit: BoxFit.contain,),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(5),
+                              color: Theme.of(context).colorScheme.tertiary,
+                              boxShadow: <BoxShadow>[
+                                BoxShadow(
+                                  color: Colors.black.withAlpha(200),
+                                  blurRadius: 8,
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.all(2),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: Image.memory(imageData, fit: BoxFit.contain,),
+                            ),
                           ),
                         );
                       }
@@ -188,10 +201,38 @@ class _PlayerPageState extends State<PlayerPage>
                               final String trackArtist = track != null ?  "${track.albumArtist} (${track.pubYear}) - ${track.artist}" : "";
                               return Column(
                                 children: <Widget>[
-                                  _getAppropriateTextWidget(displayText: trackTitle, maxWidth: constraints.maxWidth, textStyle: Theme.of(context).textTheme.displaySmall!.copyWith(color: Theme.of(context).colorScheme.onPrimaryContainer)),
-                                  _getAppropriateTextWidget(displayText: trackAlbum, maxWidth: constraints.maxWidth, textStyle: Theme.of(context).textTheme.headlineMedium!.copyWith(color: Theme.of(context).colorScheme.tertiary)),
+                                  _getAppropriateTextWidget(
+                                    displayText: trackTitle,
+                                    maxWidth: constraints.maxWidth,
+                                    textStyle: Theme.of(context).textTheme.displaySmall!.copyWith(
+                                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                      shadows: <Shadow>[
+                                        Shadow(
+                                          blurRadius: 8.0,
+                                          color: Colors.black.withAlpha(200),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  _getAppropriateTextWidget(
+                                    displayText: trackAlbum,
+                                    maxWidth: constraints.maxWidth,
+                                    textStyle: Theme.of(context).textTheme.headlineMedium!.copyWith(
+                                      color: Theme.of(context).colorScheme.tertiary,
+                                      shadows: <Shadow>[
+                                        Shadow(
+                                          blurRadius: 6.0,
+                                          color: Colors.black.withAlpha(160),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                   const SizedBox(height: 4,),
-                                  _getAppropriateTextWidget(displayText: trackArtist, maxWidth: constraints.maxWidth, textStyle: Theme.of(context).textTheme.titleMedium!.copyWith(color: Theme.of(context).colorScheme.primaryContainer)),
+                                  _getAppropriateTextWidget(
+                                    displayText: trackArtist,
+                                    maxWidth: constraints.maxWidth,
+                                    textStyle: Theme.of(context).textTheme.titleMedium!.copyWith(color: Theme.of(context).colorScheme.primaryContainer),
+                                  ),
                                 ],
                               );
                             },
@@ -207,7 +248,18 @@ class _PlayerPageState extends State<PlayerPage>
                           return Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: <Widget>[
-                              IconButton(onPressed: track != null ? _previousPressed : null, icon: Icon(Icons.skip_previous, size: iconSize, color: Theme.of(context).colorScheme.primary,),
+                              IconButton(
+                                onPressed: track != null ? _previousPressed : null,
+                                icon: Icon(
+                                  Icons.skip_previous,
+                                  size: iconSize,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  shadows: const <Shadow>[
+                                    Shadow(
+                                      blurRadius: 16.0,
+                                    ),
+                                  ],
+                                ),
                               ),
                               ValueListenableBuilder<PlaybackState>(
                                 valueListenable: AudioPlayerState.playbackState,
@@ -216,21 +268,63 @@ class _PlayerPageState extends State<PlayerPage>
                                     Icon? icon;
                                     if (playbackState == PlaybackState.playing)
                                     {
-                                      icon = Icon(Icons.pause, size: iconSize, color: Theme.of(context).colorScheme.primary,);
+                                      icon = Icon(
+                                        Icons.pause,
+                                        size: iconSize,
+                                        color: Theme.of(context).colorScheme.primary,
+                                        shadows: const <Shadow>[
+                                          Shadow(
+                                            blurRadius: 16.0,
+                                          ),
+                                        ],
+                                      );
                                     }
                                     else if (playbackState == PlaybackState.paused || playbackState == PlaybackState.stopped)
                                     {
-                                      icon = Icon(Icons.play_arrow, size: iconSize, color: Theme.of(context).colorScheme.primary);
+                                      icon = Icon(
+                                        Icons.play_arrow,
+                                        size: iconSize,
+                                        color: Theme.of(context).colorScheme.primary,
+                                        shadows: const <Shadow>[
+                                          Shadow(
+                                            blurRadius: 16.0,
+                                          ),
+                                        ],
+                                      );
                                     }
                                     else
                                     {
-                                      icon = Icon(Icons.question_mark, size: iconSize, color: Theme.of(context).colorScheme.errorContainer);
+                                      icon = Icon(
+                                        Icons.question_mark,
+                                        size: iconSize,
+                                        color: Theme.of(context).colorScheme.errorContainer,
+                                        shadows: const <Shadow>[
+                                          Shadow(
+                                            blurRadius: 16.0,
+                                          ),
+                                        ],
+                                      );
                                     }
-                                    return IconButton(onPressed: playbackState != PlaybackState.disconnected ? _playPressed : null, icon: icon);
+                                    return IconButton(
+                                      onPressed: playbackState != PlaybackState.disconnected ? _playPressed : null,
+                                      icon: icon,
+                                    );
                                   },
                               ),
 
-                              IconButton(onPressed: track != null ? _nextPressed : null, icon: Icon(Icons.skip_next, size: iconSize, color: Theme.of(context).colorScheme.primary)),
+                              IconButton(
+                                onPressed: track != null ? _nextPressed : null,
+                                icon: Icon(
+                                  Icons.skip_next,
+                                  size: iconSize,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  shadows: const <Shadow>[
+                                    Shadow(
+                                      blurRadius: 16.0,
+                                    ),
+                                  ],
+                                )
+                              ),
                             ],
                           );
                         },
