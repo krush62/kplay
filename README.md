@@ -19,14 +19,17 @@ Raspberry Pi Imager
   - add to the end: `dtoverlay=vc4-kms-dsi-waveshare-panel,7_0_inchC`
   - add to the end: `dtoverlay=hifiberry-digi-pro`
   - Disable all audio cards (except hifiberry):
-  - change `dtparam=audio=on` to `dtparam=audio=off`
-  - change `dtoverlay=vc4-kms-v3d` to `dtoverlay=vc4-kms-v3d,noaudio`
+    - change `dtparam=audio=on` to `dtparam=audio=off`
+    - change `dtoverlay=vc4-kms-v3d` to `dtoverlay=vc4-kms-v3d,noaudio`
 
 
 ### ⚙ System Setup
 - run `sudo raspi-config`
   - Auto Login: System Options -> Auto Login
 - Allow 3D acceleration: `sudo usermod -a -G render [USER_NAME]`
+- Update system: `sudo apt update`
+- Upgrade system: `sudo apt full-upgrade`
+- *[Optional]* update firmware/bootloader: `sudo rpi-eeprom-update -a`
 
 
 ### 🍓 Install FlutterPi
@@ -97,3 +100,21 @@ Raspberry Pi Imager
   - `scp -r build/flutter_assets/ [USER_NAME]@[RASPI_NAME]:/home/[USER_NAME]/kplay`
   - *[Optional]* copy music data to target (from Windows/Linux)
   - `scp -r "/path/to/music/folder" [USER_NAME]@[RASPI_NAME]:/home/[USER_NAME]/Music` (or any other directory)
+
+## Energy Consumption
+The energy consumption of the Raspberry Pi 4 B was measured using a cheap, little USB-C measuring device.
+
+| Activity                  | Brightness | Power |
+| ---                       | ---:       | ---:  |
+| halt state (shut down)    | ---        | 1.5W  |
+| kplay (playing/paused)    | 255        | 3.6W  |
+| kplay (playing/paused)    | 128        | 3.1W  |
+| kplay (playing/paused)    | 5          | 2.7W  |
+| kplay (playing/paused)    | 0/off      | 2.6W  |
+| Youtube Music             | 255        | 3.8W  |
+| Youtube Music             | 128        | 3.2W  |
+| Youtube Music             | 5          | 2.8W  |
+| Youtube Music             | 0/off      | 2.7W  |
+
+### Saving Power
+Commenting out the line `arm_boost=1` and adding `arm_freq=800` and `gpu_freq=250` to `/boot/firmware/config.txt` reduces the power consumption by ~0.25W.
