@@ -34,7 +34,6 @@ class _SettingsPageState extends State<SettingsPage>
   final ValueNotifier<bool> _extensionMp3 = ValueNotifier<bool>(true);
   final ValueNotifier<bool> _extensionOpus = ValueNotifier<bool>(true);
   final ValueNotifier<bool> _extensionFlac = ValueNotifier<bool>(true);
-  final ValueNotifier<bool> _extensionMp4 = ValueNotifier<bool>(true);
   final ValueNotifier<bool> _scanRecursive = ValueNotifier<bool>(true);
   bool _minimumOverlayTimerRunning = false;
 
@@ -198,7 +197,6 @@ class _SettingsPageState extends State<SettingsPage>
     if (_extensionMp3.value) extensions.add(".mp3");
     if (_extensionOpus.value) extensions.add(".opus");
     if (_extensionFlac.value) extensions.add(".flac");
-    if (_extensionMp4.value) extensions.add(".mp4");
     _currentStatus.value = "Reading base folders...";
     getAllMetaData(extensions: extensions, baseFolders: widget.baseFolderNotifier.value, recursive: _scanRecursive.value, updateLabelNotifier: _currentStatus).then((final List<TableTracksCompanion> tracks) {
       _filesReadFromBaseFolders(tracks: tracks);
@@ -356,7 +354,6 @@ class _SettingsPageState extends State<SettingsPage>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch, 
                           children: <Widget>[
-                          //final List<String> extensions = <String>[".m4a", ".ogg", ".mp3", ".opus", "flac", "mp4"];
                             ValueListenableBuilder<bool>(
                               valueListenable: _extensionFlac,
                               builder: (final BuildContext context, final bool value, final Widget? child)
@@ -397,19 +394,6 @@ class _SettingsPageState extends State<SettingsPage>
                               },
                             ),
                             ValueListenableBuilder<bool>(
-                              valueListenable: _extensionMp4,
-                              builder: (final BuildContext context, final bool value, final Widget? child)
-                              {
-                                return CheckboxListTile(
-                                  value: value,
-                                  onChanged: (final bool? value) {
-                                    _extensionMp4.value = value ?? false;
-                                  },
-                                  title: Text("mp4", style: Theme.of(context).textTheme.titleLarge),
-                                );
-                              },
-                            ),
-                            ValueListenableBuilder<bool>(
                               valueListenable: _extensionOgg,
                               builder: (final BuildContext context, final bool value, final Widget? child)
                               {
@@ -438,7 +422,6 @@ class _SettingsPageState extends State<SettingsPage>
                           ],
                         ),
                       ),
-                      //final List<String> extensions = <String>[".m4a", ".ogg", ".mp3", ".opus", "flac", "mp4"];
                     ],
                   ),
                 ],

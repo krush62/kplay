@@ -1,5 +1,6 @@
 
 
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -68,7 +69,6 @@ Future<Uint8List?> getImageForTrack({required final String path}) async
   final Map<String, String>
   extensionMap = <String, String>{
     ".m4a": "coverart",
-    ".mp4": "coverart",
     ".mp3": "Picture",
     ".ogg": "Picture",
     ".opus": "Picture",
@@ -99,7 +99,7 @@ Future<Uint8List?> getImageForTrack({required final String path}) async
 
 }
 
-Future<ExtendedTrackInfo?> getExifInfo({required final String path, required final SimpleTrackInfo trackInfo}) async
+Future<ExtendedTrackInfo?> getExifInfo({required final String path}) async
 {
   final String extension = p.extension(path).toLowerCase();
 
@@ -108,35 +108,37 @@ Future<ExtendedTrackInfo?> getExifInfo({required final String path, required fin
   const int artistIndex = 2;
   const int albumArtistIndex = 3;
   const int yearIndex = 4;
+  const int durationIndex = 5;
 
-  final List<String> mp3Fields = List<String>.filled(5, "");
-  final List<String> m4aFields = List<String>.filled(5, "");
+  final List<String> mp3Fields = List<String>.filled(6, "");
+  final List<String> m4aFields = List<String>.filled(6, "");
   final List<String> oggFields = List<String>.filled(5, "");
 
-  mp3Fields[albumIndex] = "Album";
-  mp3Fields[titleIndex] = "Title";
-  mp3Fields[artistIndex] = "Artist";
-  mp3Fields[albumArtistIndex] = "Band";
-  mp3Fields[yearIndex] = "Year";
+  mp3Fields[albumIndex] = "-album";
+  mp3Fields[titleIndex] = "-title";
+  mp3Fields[artistIndex] = "-artist";
+  mp3Fields[albumArtistIndex] = "-band";
+  mp3Fields[yearIndex] = "-year";
+  mp3Fields[durationIndex] = "-duration";
 
-  m4aFields[albumIndex] = "Album";
-  m4aFields[titleIndex] = "Title";
-  m4aFields[artistIndex] = "Artist";
-  m4aFields[albumArtistIndex] = "AlbumArtist";
-  m4aFields[yearIndex] = "ContentCreateDate";
+  m4aFields[albumIndex] = "-album";
+  m4aFields[titleIndex] = "-title";
+  m4aFields[artistIndex] = "-artist";
+  m4aFields[albumArtistIndex] = "-albumartist";
+  m4aFields[yearIndex] = "-contentcreatedate";
+  m4aFields[durationIndex] = "-duration";
 
-  oggFields[albumIndex] = "Album";
-  oggFields[titleIndex] = "Title";
-  oggFields[artistIndex] = "Artist";
-  oggFields[albumArtistIndex] = "AlbumArtist";
-  oggFields[yearIndex] = "Date";
+  oggFields[albumIndex] = "-album";
+  oggFields[titleIndex] = "-title";
+  oggFields[artistIndex] = "-artist";
+  oggFields[albumArtistIndex] = "-albumartist";
+  oggFields[yearIndex] = "-date";
 
   final Map<String, List<String>>
   extensionMap = <String, List<String>>
   {
     ".mp3": mp3Fields,
     ".m4a": m4aFields,
-    ".mp4": m4aFields,
     ".ogg": oggFields,
     ".opus": oggFields,
     ".flac": oggFields,
@@ -149,23 +151,47 @@ Future<ExtendedTrackInfo?> getExifInfo({required final String path, required fin
 
     try
     {
-      int i = 0;
-      for (final String? infoField in infoFields)
+      final ProcessResult exifToolResult = await Process.run('exiftool', <String>[...infoFields, '-s2', path]);
+      if (exifToolResult.exitCode == 0)
       {
-        final ProcessResult exifToolResult = await Process.run('exiftool', <String>['-$infoField', '-s3', path]);
-        if (exifToolResult.exitCode == 0) {
-          final String resultString = exifToolResult.stdout.toString().trim();
-          if (i == albumIndex) {extInfo.album = resultString;}
-          else if (i == titleIndex) {extInfo.title = resultString;}
-          else if (i == artistIndex) {extInfo.artist = resultString;}
-          else if (i == albumArtistIndex) {extInfo.albumArtist = resultString;}
-          else if (i == yearIndex)
+        final String resultString = exifToolResult.stdout.toString();
+        const LineSplitter ls = LineSplitter();
+        final List<String> resultList = ls.convert(resultString);
+        int infoStartIndex = 0;
+        for (final String resultEntry in resultList)
+        {
+          for (int i = infoStartIndex; i < infoFields.length; i++)
           {
-            final int? parseResult = int.tryParse(resultString);
-            if (parseResult != null) extInfo.pubYear = parseResult;
+            if (resultEntry.toLowerCase().startsWith(infoFields[i].substring(1)))
+            {
+              final String data = resultEntry.substring(infoFields[i].length + 1).trim();
+              if (i == albumIndex) {extInfo.album = data;}
+              else if (i == titleIndex) {extInfo.title = data;}
+              else if (i == artistIndex) {extInfo.artist = data;}
+              else if (i == albumArtistIndex) {extInfo.albumArtist = data;}
+              else if (i == yearIndex)
+              {
+                final int? parseResult = int.tryParse(data);
+                if (parseResult != null) extInfo.pubYear = parseResult;
+              }
+              else if (i == durationIndex)
+              {
+                final RegExp timeRegex = RegExp(r'(\d+):(\d+):(\d+)');
+                final RegExpMatch? match = timeRegex.firstMatch(data);
+                if (match != null)
+                {
+                  final int hours = int.parse(match.group(1)!);
+                  final int minutes = int.parse(match.group(2)!);
+                  final int seconds = int.parse(match.group(3)!);
+                  final int totalSeconds = hours * 3600 + minutes * 60 + seconds;
+                  extInfo.duration = totalSeconds;
+                }
+              }
+              infoStartIndex = i + 1;
+              break;
+            }
           }
         }
-        i++;
       }
     }
     catch (e)
@@ -174,19 +200,23 @@ Future<ExtendedTrackInfo?> getExifInfo({required final String path, required fin
     }
 
     //get duration
-    try
+    if (extInfo.duration == null)
     {
-      final ProcessResult ffProbeResult = await Process.run('ffprobe', <String>['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', path]);
-      if (ffProbeResult.exitCode == 0) {
-        final double? parsed = double.tryParse(ffProbeResult.stdout.toString().trim());
-        if (parsed != null) {
-          extInfo.duration = parsed.toInt();
+      try
+      {
+        final ProcessResult ffProbeResult = await Process.run('ffprobe', <String>['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', path]);
+        if (ffProbeResult.exitCode == 0) {
+          final double? parsed = double.tryParse(ffProbeResult.stdout.toString().trim());
+          if (parsed != null) {
+            extInfo.duration = parsed.toInt();
+          }
         }
       }
-    }
-    catch (e)
-    {
-      return null;
+      catch (e)
+      {
+        extInfo.duration = 0;
+        //return null;
+      }
     }
 
     return extInfo;
@@ -210,7 +240,7 @@ Future<List<TableTracksCompanion>> getAllMetaData({required final List<String> e
       TableTracksCompanion? track;
       final SimpleTrackInfo trackInfo = _extractTrackInfo(path);
 
-      final ExtendedTrackInfo? exTrack = await getExifInfo(path: path, trackInfo: trackInfo);
+      final ExtendedTrackInfo? exTrack = await getExifInfo(path: path);
       if (exTrack != null)
       {
         track = TableTracksCompanion.insert(
