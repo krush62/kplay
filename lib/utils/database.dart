@@ -275,4 +275,11 @@ class AppDatabase extends _$AppDatabase
     return success;
   }
 
+  Future<bool> deleteTrack(final MutableTrack track) async
+  {
+    await (delete(tablePlaylistTracks)..where((final $TablePlaylistTracksTable tbl) => tbl.trackId.equals(track.id))).go();
+    final int trackCount = await (delete(tableTracks)..where((final $TableTracksTable tbl) => tbl.id.equals(track.id))).go();
+    return trackCount > 0;
+  }
+
 }

@@ -2,17 +2,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kplay/main.dart';
 import 'package:kplay/utils/database.dart';
 import 'package:kplay/utils/directory_picker.dart';
 import 'package:kplay/utils/file_helper.dart';
 import 'package:kplay/utils/helpers.dart';
-import 'package:path/path.dart' as p; //TODO take care of this warning and the modules in general
+import 'package:path/path.dart' as p;
 
 class SettingsPage extends StatefulWidget
 {
-  const SettingsPage({super.key, required this.db, required this.errorCallback, required this.allPlaylistTracks, required this.favoritePlaylistTracks, required this.baseFolderNotifier});
+  const SettingsPage({super.key, required this.errorCallback, required this.allPlaylistTracks, required this.favoritePlaylistTracks, required this.baseFolderNotifier});
 
-  final AppDatabase db;
   final void Function({required String message, int seconds}) errorCallback;
   final ValueNotifier<List<MutableTrack>> allPlaylistTracks;
   final ValueNotifier<List<MutableTrack>> favoritePlaylistTracks;
@@ -61,23 +61,23 @@ class _SettingsPageState extends State<SettingsPage>
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: <Widget>[
+                          const CircularProgressIndicator(),
+                          const SizedBox(width: 20,),
+                          ValueListenableBuilder<String?>(
+                              valueListenable: _currentStatus,
+                              builder: (final BuildContext context, final String? status, final Widget? child)
+                              {
+                                return Text(status ?? "finishing...");
+                              },
+                          ),
+                        ],
+                      ),
                     ),
-                    child: Row(
-                      children: <Widget>[
-                        const CircularProgressIndicator(),
-                        const SizedBox(width: 20,),
-                        ValueListenableBuilder<String?>(
-                            valueListenable: _currentStatus,
-                            builder: (final BuildContext context, final String? status, final Widget? child)
-                            {
-                              return Text(status ?? "finishing...");
-                            },
-                        ),
-                      ],
-                    ),
-                                  ),
                   ),
                 ),
               ),
@@ -161,7 +161,7 @@ class _SettingsPageState extends State<SettingsPage>
 
   void _readBaseFolders()
   {
-    widget.db.select(widget.db.tableBaseFolders).get().then((final List<TableBaseFolder> items) {
+    appdb.select(appdb.tableBaseFolders).get().then((final List<TableBaseFolder> items) {
       if (baseFoldersAreDifferent(items))
       {
         widget.baseFolderNotifier.value = items;
@@ -172,7 +172,7 @@ class _SettingsPageState extends State<SettingsPage>
 
   void _updatePlaylists()
   {
-    widget.db.getAllTracks().then((final List<TableTrack> tracks) {
+    appdb.getAllTracks().then((final List<TableTrack> tracks) {
       final List<MutableTrack> allTracks = <MutableTrack>[];
       final List<MutableTrack> favoriteTracks = <MutableTrack>[];
       for (final TableTrack track in tracks)
@@ -206,7 +206,7 @@ class _SettingsPageState extends State<SettingsPage>
   void _filesReadFromBaseFolders({required final List<TableTracksCompanion> tracks})
   {
     _currentStatus.value = "Updating database...";
-    widget.db.insertTracks(tracks: tracks).then((final bool success) {
+    appdb.insertTracks(tracks: tracks).then((final bool success) {
 
       _updatePlaylists();
       _currentStatus.value = null;
@@ -222,7 +222,7 @@ class _SettingsPageState extends State<SettingsPage>
   void _newFolderSelected(final String path)
   {
     _directoryPickerOverlay.remove();
-    widget.db.insertBaseFolder(path).then((final bool success) {
+    appdb.insertBaseFolder(path).then((final bool success) {
       if (success)
       {
         _readBaseFolders();
@@ -244,7 +244,7 @@ class _SettingsPageState extends State<SettingsPage>
   void _deleteFolder(final TableBaseFolder folder)
   {
     _currentStatus.value = "Removing base folder...";
-    widget.db.deleteBaseFolder(folder).then((final bool success) {
+    appdb.deleteBaseFolder(folder).then((final bool success) {
       if (success)
       {
         _currentStatus.value = null;

@@ -299,6 +299,17 @@ class AudioPlayerState
     return false;
   }
 
+  static Future<bool> removeTrackFromPlaylist(final MutableTrack track) async
+  {
+    final String? playlistId = playlist.value.where((final PlaylistEntry entry) => entry.dbTrack.id == track.id).singleOrNull?.playlistId;
+    if (playlistId != null)
+    {
+      final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$password", "http://localhost:8080/requests/status.json?command=pl_delete&id=$playlistId"]);
+      return (result.exitCode == 0);
+    }
+    return false;
+  }
+
   static Future<bool> clearPlaylist() async
   {
     final ProcessResult result = await Process.run(_curlCommand, <String>["-u", ":$password", "http://localhost:8080/requests/status.json?command=pl_empty"]);

@@ -210,11 +210,16 @@ Future<ExtendedTrackInfo?> getExifInfo({required final String path}) async
           if (parsed != null) {
             extInfo.duration = parsed.toInt();
           }
+          else
+          {
+            throw Exception();
+          }
         }
       }
       catch (e)
       {
         extInfo.duration = 0;
+        stdout.writeln("Could not determine duration for file $path");
         //return null;
       }
     }
@@ -296,4 +301,19 @@ Future<Set<String>> _getFileListFromFolder({required final String folder, requir
   }
 
   return files;
+}
+
+Future<bool> deleteFile({required final String path}) async
+{
+  try
+  {
+    final File file = File(path);
+    await file.delete();
+    return true;
+  }
+  catch (e)
+  {
+    return false;
+  }
+
 }

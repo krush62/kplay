@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:kplay/main.dart';
 import 'package:kplay/utils/audio_player_state.dart';
 import 'package:kplay/utils/database.dart';
+import 'package:kplay/utils/file_helper.dart';
 import 'package:kplay/utils/helpers.dart';
 import 'package:marquee/marquee.dart';
 
@@ -12,13 +13,13 @@ import 'package:marquee/marquee.dart';
 
 class PlayerPage extends StatefulWidget
 {
-  const PlayerPage({super.key, required this.imageData, required this.currentTrack, required this.playlistType, required this.toggleFavorite});
+  const PlayerPage({super.key, required this.imageData, required this.currentTrack, required this.playlistType, required this.toggleFavorite, required this.allPlaylistTracks});
 
   final Function() toggleFavorite;
   final ValueNotifier<Uint8List?> imageData;
   final ValueNotifier<MutableTrack?> currentTrack;
   final ValueNotifier<PlaylistType> playlistType;
-
+  final ValueNotifier<List<MutableTrack>> allPlaylistTracks;
 
   @override
   State<PlayerPage> createState() => _PlayerPageState();
@@ -26,11 +27,65 @@ class PlayerPage extends StatefulWidget
 
 class _PlayerPageState extends State<PlayerPage>
 {
-  
+  static const double favoriteHeight = 28;
+  static const double padding = 8;
+  late OverlayEntry _alertOverlay;
+
   @override
   void initState()
   {
     super.initState();
+    _alertOverlay = OverlayEntry(
+      builder: (final BuildContext context) {
+        return Stack(
+          children:<Widget>[
+            ModalBarrier(
+              dismissible: false,
+              color: Colors.black.withAlpha(100),
+            ),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Material(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Text("Do you want to delete this track?", style: Theme.of(context).textTheme.headlineMedium!.copyWith(color: Theme.of(context).colorScheme.errorContainer),),
+                          const SizedBox(height: 16,),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                             SizedBox(
+                               width: 128,
+                               height: 64,
+                               child: IconButton.filledTonal(onPressed: (){_deleteTrackDeclined();}, icon: const Icon(Icons.cancel, size: 48,)),
+                             ),
+                             const SizedBox(width: 32,),
+                             SizedBox(
+                                 width: 128,
+                                 height: 64,
+                                 child: IconButton.filledTonal(onPressed: (){_deleteTrackAccepted();}, icon: const Icon(Icons.check, size: 48)),
+                             ),
+                           ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _playPressed() async
@@ -81,8 +136,48 @@ class _PlayerPageState extends State<PlayerPage>
     {
       return Text(displayText, style: textStyle, maxLines: 1,);
     }
+  }
+
+  void _longPressOnTitle()
+  {
+    Overlay.of(context).insert(_alertOverlay);
+  }
+
+  void _deleteTrackAccepted()
+  {
+    _deleteTrack().then((final void _) {
+      _alertOverlay.remove();
+    },);
+  }
+
+  Future<void> _deleteTrack() async
+  {
+    final MutableTrack track = widget.currentTrack.value!;
+    await AudioPlayerState.next();
+    if (await AudioPlayerState.removeTrackFromPlaylist(track))
+    {
+      widget.allPlaylistTracks.value.remove(track);
+      if (await appdb.deleteTrack(track))
+      {
+        deleteFile(path: track.path);
+      }
+      else if (context.mounted)
+      {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to remove track from database!"),));
+      }
+    }
+    else if (context.mounted)
+    {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to remove track from playlist!"),));
+    }
 
   }
+
+  void _deleteTrackDeclined()
+  {
+    _alertOverlay.remove();
+  }
+
 
   @override
   Widget build(final BuildContext context)
@@ -151,8 +246,6 @@ class _PlayerPageState extends State<PlayerPage>
                             valueListenable: widget.currentTrack,
                             builder: (final BuildContext context, final MutableTrack? track, final Widget? child)
                             {
-                              const double favoriteHeight = 28;
-                              const double padding = 8;
                               Icon icon;
                               if (track != null && track.isFavorite)
                               {
@@ -201,17 +294,20 @@ class _PlayerPageState extends State<PlayerPage>
                               final String trackArtist = track != null ?  "${track.albumArtist} (${track.pubYear}) - ${track.artist}" : "";
                               return Column(
                                 children: <Widget>[
-                                  _getAppropriateTextWidget(
-                                    displayText: trackTitle,
-                                    maxWidth: constraints.maxWidth,
-                                    textStyle: Theme.of(context).textTheme.displaySmall!.copyWith(
-                                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                                      shadows: <Shadow>[
-                                        Shadow(
-                                          blurRadius: 8.0,
-                                          color: Colors.black.withAlpha(200),
-                                        ),
-                                      ],
+                                  GestureDetector(
+                                    onLongPress: () {_longPressOnTitle();},
+                                    child: _getAppropriateTextWidget(
+                                      displayText: trackTitle,
+                                      maxWidth: constraints.maxWidth,
+                                      textStyle: Theme.of(context).textTheme.displaySmall!.copyWith(
+                                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                        shadows: <Shadow>[
+                                          Shadow(
+                                            blurRadius: 8.0,
+                                            color: Colors.black.withAlpha(200),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                   _getAppropriateTextWidget(
@@ -323,7 +419,7 @@ class _PlayerPageState extends State<PlayerPage>
                                       blurRadius: 16.0,
                                     ),
                                   ],
-                                )
+                                ),
                               ),
                             ],
                           );

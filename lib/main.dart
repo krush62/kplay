@@ -23,12 +23,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(final BuildContext context)
   {
-    //final Brightness brightness = View.of(context).platformDispatcher.platformBrightness;
     final TextTheme textTheme = createTextTheme(context, "Homenaje", "Homenaje");
     final MaterialTheme theme = MaterialTheme(textTheme);
     return MaterialApp(
       title: 'KPlay',
-      //theme: brightness == Brightness.light ? theme.light() : theme.dark(),
       theme: theme.dark(),
       home: const KPlay(),
     );
@@ -349,11 +347,11 @@ class _KPlayState extends State<KPlay>
             switch(selectedNav)
             {
               case NavigationState.player:
-                return PlayerPage(imageData: imageData, currentTrack: currentTrack, toggleFavorite: toggleFavorite, playlistType: playlistType,);
+                return PlayerPage(imageData: imageData, currentTrack: currentTrack, toggleFavorite: toggleFavorite, playlistType: playlistType, allPlaylistTracks: allPlaylistTracks,);
               case NavigationState.browser:
                 return PlaylistPage(allPlaylistTracks: allPlaylistTracks, favoritePlaylistTracks: favoritePlaylistTracks, playlistType: playlistType, currentTrack: currentTrack, selectTrack: selectTrack,);
               case NavigationState.settings:
-                return SettingsPage(db: appdb, errorCallback: showSnackbarMessage, allPlaylistTracks: allPlaylistTracks, favoritePlaylistTracks: favoritePlaylistTracks, baseFolderNotifier: _baseFolderNotifier,);
+                return SettingsPage(errorCallback: showSnackbarMessage, allPlaylistTracks: allPlaylistTracks, favoritePlaylistTracks: favoritePlaylistTracks, baseFolderNotifier: _baseFolderNotifier,);
               case NavigationState.system:
                 return const SystemPage();
             }
